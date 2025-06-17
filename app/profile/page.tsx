@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -9,352 +10,363 @@ import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
-import { Edit, Trash2, Plus, Upload, Eye } from "lucide-react"
-import Link from "next/link"
-import { PortfolioShowcase } from "@/components/portfolio-showcase"
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { GraduationCap, Edit, Trash2, Plus, Upload, Star, MapPin, Mail, Phone } from "lucide-react"
 
 export default function ProfilePage() {
   const [isEditing, setIsEditing] = useState(false)
-  const [profileData, setProfileData] = useState({
-    name: "John Doe",
-    title: "Full-Stack Developer & UI Designer",
-    department: "Computer Science",
-    year: "Senior",
-    email: "john.doe@stonybrook.edu",
-    phone: "(555) 123-4567",
-    hourlyRate: 30,
-    bio: "Passionate computer science student with 3+ years of experience in web development. Specialized in React, Node.js, and modern web technologies. Always eager to take on challenging projects and deliver high-quality solutions.",
-    skills: ["React", "Node.js", "Python", "UI/UX Design", "MongoDB", "TypeScript"],
-    availability: "Part-time",
-  })
-
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [portfolioItems, setPortfolioItems] = useState([
     {
       id: 1,
-      title: "E-commerce Platform",
-      description: "Full-stack e-commerce solution built with React and Node.js",
+      title: "E-commerce Website",
+      description: "Built a full-stack e-commerce platform using React and Node.js",
       image: "/placeholder.svg?height=200&width=300",
-      technologies: ["React", "Node.js", "MongoDB"],
-      link: "https://github.com/johndoe/ecommerce",
+      tags: ["React", "Node.js", "MongoDB"],
     },
     {
       id: 2,
-      title: "Task Management App",
-      description: "Collaborative task management application with real-time updates",
+      title: "Mobile App Design",
+      description: "UI/UX design for a fitness tracking mobile application",
       image: "/placeholder.svg?height=200&width=300",
-      technologies: ["React", "Socket.io", "Express"],
-      link: "https://github.com/johndoe/taskapp",
+      tags: ["UI/UX", "Figma", "Mobile Design"],
     },
     {
       id: 3,
-      title: "University Course Planner",
-      description: "Course planning tool for Stony Brook students",
+      title: "Brand Identity Package",
+      description: "Complete branding package for a local startup",
       image: "/placeholder.svg?height=200&width=300",
-      technologies: ["Python", "Flask", "SQLite"],
-      link: "https://github.com/johndoe/courseplanner",
+      tags: ["Branding", "Logo Design", "Adobe Creative Suite"],
     },
   ])
 
-  const handleSaveProfile = () => {
-    setIsEditing(false)
-    // Here you would typically save to a backend
-    console.log("Profile saved:", profileData)
-  }
-
-  const handleDeleteProfile = () => {
-    // Here you would typically delete from backend
-    console.log("Profile deleted")
-  }
-
-  const handleAddPortfolioItem = () => {
-    const newItem = {
-      id: Date.now(),
-      title: "New Project",
-      description: "Project description",
-      image: "/placeholder.svg?height=200&width=300",
-      technologies: [],
-      link: "",
-    }
-    setPortfolioItems([...portfolioItems, newItem])
-  }
+  const [profile, setProfile] = useState({
+    name: "Alex Thompson",
+    email: "alex.thompson@stonybrook.edu",
+    phone: "(555) 123-4567",
+    major: "Computer Science",
+    year: "Junior",
+    location: "Stony Brook, NY",
+    bio: "Passionate computer science student with experience in full-stack web development and mobile app design. I love creating user-friendly applications that solve real-world problems.",
+    skills: ["JavaScript", "React", "Node.js", "Python", "UI/UX Design"],
+    hourlyRate: "$25",
+    availability: "Part-time",
+  })
 
   const handleDeletePortfolioItem = (id: number) => {
     setPortfolioItems(portfolioItems.filter((item) => item.id !== id))
   }
 
+  const handleDeleteProfile = () => {
+    // In a real app, this would delete the profile from the database
+    alert("Profile deleted successfully!")
+    setShowDeleteDialog(false)
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-red-600 text-white shadow-lg">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <Link href="/" className="flex items-center space-x-4">
+      <header className="bg-red-700 text-white shadow-lg">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <Link href="/" className="flex items-center space-x-3">
+              <GraduationCap className="h-8 w-8" />
               <h1 className="text-2xl font-bold">WolfieWorks</h1>
             </Link>
-            <div className="flex items-center space-x-4">
-              <Button variant="outline" className="bg-white text-red-600 hover:bg-red-50">
-                <Eye className="h-4 w-4 mr-2" />
-                View Public Profile
-              </Button>
-            </div>
+            <nav className="flex items-center space-x-6">
+              <Link href="/browse" className="hover:text-red-200 transition-colors">
+                Browse Jobs
+              </Link>
+              <Link href="/dashboard" className="hover:text-red-200 transition-colors">
+                Dashboard
+              </Link>
+            </nav>
           </div>
         </div>
       </header>
 
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
-          <h2 className="text-3xl font-bold text-gray-900 mb-2">My Profile</h2>
-          <p className="text-gray-600">Manage your profile information and portfolio</p>
-        </div>
-
-        <Tabs defaultValue="profile" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="profile">Profile Information</TabsTrigger>
-            <TabsTrigger value="portfolio">Portfolio</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="profile">
-            <Card>
-              <CardHeader>
-                <div className="flex justify-between items-center">
+      <div className="container mx-auto px-4 py-8">
+        <div className="max-w-4xl mx-auto">
+          {/* Profile Header */}
+          <Card className="mb-8">
+            <CardHeader>
+              <div className="flex items-start justify-between">
+                <div className="flex items-center space-x-4">
+                  <Avatar className="h-24 w-24">
+                    <AvatarImage src="/placeholder.svg?height=96&width=96" />
+                    <AvatarFallback className="bg-red-100 text-red-700 text-xl">
+                      {profile.name
+                        .split(" ")
+                        .map((n) => n[0])
+                        .join("")}
+                    </AvatarFallback>
+                  </Avatar>
                   <div>
-                    <CardTitle>Profile Information</CardTitle>
-                    <CardDescription>Update your personal and professional information</CardDescription>
+                    <h2 className="text-3xl font-bold text-gray-900">{profile.name}</h2>
+                    <p className="text-red-600 font-medium">
+                      {profile.major} • {profile.year}
+                    </p>
+                    <div className="flex items-center space-x-4 mt-2 text-gray-600">
+                      <div className="flex items-center">
+                        <MapPin className="h-4 w-4 mr-1" />
+                        {profile.location}
+                      </div>
+                      <div className="flex items-center">
+                        <Star className="h-4 w-4 mr-1 fill-yellow-400 text-yellow-400" />
+                        4.9 (23 reviews)
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex space-x-2">
-                    {!isEditing ? (
-                      <Button onClick={() => setIsEditing(true)} className="bg-red-600 hover:bg-red-700">
-                        <Edit className="h-4 w-4 mr-2" />
-                        Edit Profile
+                </div>
+                <div className="flex space-x-2">
+                  <Button onClick={() => setIsEditing(!isEditing)} className="bg-red-600 hover:bg-red-700">
+                    <Edit className="h-4 w-4 mr-2" />
+                    {isEditing ? "Cancel" : "Edit Profile"}
+                  </Button>
+                  <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+                    <DialogTrigger asChild>
+                      <Button variant="destructive">
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Delete
                       </Button>
-                    ) : (
-                      <div className="flex space-x-2">
-                        <Button onClick={handleSaveProfile} className="bg-green-600 hover:bg-green-700">
-                          Save Changes
-                        </Button>
-                        <Button variant="outline" onClick={() => setIsEditing(false)}>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Delete Profile</DialogTitle>
+                        <DialogDescription>
+                          Are you sure you want to delete your profile? This action cannot be undone.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <DialogFooter>
+                        <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>
                           Cancel
                         </Button>
-                      </div>
-                    )}
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button variant="destructive">
-                          <Trash2 className="h-4 w-4 mr-2" />
+                        <Button variant="destructive" onClick={handleDeleteProfile}>
                           Delete Profile
                         </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            This action cannot be undone. This will permanently delete your profile and remove all your
-                            data from our servers.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction onClick={handleDeleteProfile} className="bg-red-600 hover:bg-red-700">
-                            Delete Profile
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </div>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
                 </div>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {/* Profile Picture and Basic Info */}
-                <div className="flex items-start space-x-6">
-                  <div className="flex flex-col items-center space-y-2">
-                    <Avatar className="h-24 w-24">
-                      <AvatarImage src="/placeholder.svg?height=96&width=96" />
-                      <AvatarFallback className="text-lg">JD</AvatarFallback>
-                    </Avatar>
-                    {isEditing && (
-                      <Button size="sm" variant="outline">
-                        <Upload className="h-4 w-4 mr-2" />
-                        Upload Photo
-                      </Button>
-                    )}
+              </div>
+            </CardHeader>
+          </Card>
+
+          <Tabs defaultValue="profile" className="space-y-6">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="profile">Profile Information</TabsTrigger>
+              <TabsTrigger value="portfolio">Portfolio</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="profile">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Profile Information</CardTitle>
+                  <CardDescription>
+                    {isEditing ? "Edit your profile information" : "Your profile information"}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {isEditing ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <Label htmlFor="name">Full Name</Label>
+                        <Input
+                          id="name"
+                          value={profile.name}
+                          onChange={(e) => setProfile({ ...profile, name: e.target.value })}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="email">Email</Label>
+                        <Input
+                          id="email"
+                          type="email"
+                          value={profile.email}
+                          onChange={(e) => setProfile({ ...profile, email: e.target.value })}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="phone">Phone</Label>
+                        <Input
+                          id="phone"
+                          value={profile.phone}
+                          onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="major">Major</Label>
+                        <Input
+                          id="major"
+                          value={profile.major}
+                          onChange={(e) => setProfile({ ...profile, major: e.target.value })}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="year">Academic Year</Label>
+                        <Select value={profile.year} onValueChange={(value) => setProfile({ ...profile, year: value })}>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Freshman">Freshman</SelectItem>
+                            <SelectItem value="Sophomore">Sophomore</SelectItem>
+                            <SelectItem value="Junior">Junior</SelectItem>
+                            <SelectItem value="Senior">Senior</SelectItem>
+                            <SelectItem value="Graduate">Graduate</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="rate">Hourly Rate</Label>
+                        <Input
+                          id="rate"
+                          value={profile.hourlyRate}
+                          onChange={(e) => setProfile({ ...profile, hourlyRate: e.target.value })}
+                        />
+                      </div>
+                      <div className="md:col-span-2 space-y-2">
+                        <Label htmlFor="bio">Bio</Label>
+                        <Textarea
+                          id="bio"
+                          rows={4}
+                          value={profile.bio}
+                          onChange={(e) => setProfile({ ...profile, bio: e.target.value })}
+                        />
+                      </div>
+                      <div className="md:col-span-2">
+                        <Button className="bg-red-600 hover:bg-red-700" onClick={() => setIsEditing(false)}>
+                          Save Changes
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-6">
+                      <div>
+                        <h4 className="font-semibold text-gray-900 mb-2">About</h4>
+                        <p className="text-gray-700">{profile.bio}</p>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                          <h4 className="font-semibold text-gray-900 mb-2">Contact Information</h4>
+                          <div className="space-y-2 text-gray-700">
+                            <div className="flex items-center">
+                              <Mail className="h-4 w-4 mr-2" />
+                              {profile.email}
+                            </div>
+                            <div className="flex items-center">
+                              <Phone className="h-4 w-4 mr-2" />
+                              {profile.phone}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div>
+                          <h4 className="font-semibold text-gray-900 mb-2">Work Details</h4>
+                          <div className="space-y-2 text-gray-700">
+                            <p>
+                              <span className="font-medium">Rate:</span> {profile.hourlyRate}/hour
+                            </p>
+                            <p>
+                              <span className="font-medium">Availability:</span> {profile.availability}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div>
+                        <h4 className="font-semibold text-gray-900 mb-3">Skills</h4>
+                        <div className="flex flex-wrap gap-2">
+                          {profile.skills.map((skill, index) => (
+                            <Badge key={index} className="bg-red-100 text-red-700">
+                              {skill}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="portfolio">
+              <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-2xl font-bold text-gray-900">Portfolio</h3>
+                    <p className="text-gray-600">Showcase your best work</p>
                   </div>
-                  <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="name">Full Name</Label>
-                      <Input
-                        id="name"
-                        value={profileData.name}
-                        onChange={(e) => setProfileData({ ...profileData, name: e.target.value })}
-                        disabled={!isEditing}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="title">Professional Title</Label>
-                      <Input
-                        id="title"
-                        value={profileData.title}
-                        onChange={(e) => setProfileData({ ...profileData, title: e.target.value })}
-                        disabled={!isEditing}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="department">Department/Major</Label>
-                      <Input
-                        id="department"
-                        value={profileData.department}
-                        onChange={(e) => setProfileData({ ...profileData, department: e.target.value })}
-                        disabled={!isEditing}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="year">Academic Year</Label>
-                      <Select disabled={!isEditing} value={profileData.year}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Freshman">Freshman</SelectItem>
-                          <SelectItem value="Sophomore">Sophomore</SelectItem>
-                          <SelectItem value="Junior">Junior</SelectItem>
-                          <SelectItem value="Senior">Senior</SelectItem>
-                          <SelectItem value="Graduate">Graduate</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
+                  <Button className="bg-red-600 hover:bg-red-700">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Portfolio Item
+                  </Button>
                 </div>
 
-                {/* Contact Information */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="email">Email</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={profileData.email}
-                      onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
-                      disabled={!isEditing}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="phone">Phone</Label>
-                    <Input
-                      id="phone"
-                      value={profileData.phone}
-                      onChange={(e) => setProfileData({ ...profileData, phone: e.target.value })}
-                      disabled={!isEditing}
-                    />
-                  </div>
-                </div>
-
-                {/* Professional Information */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="hourlyRate">Hourly Rate ($)</Label>
-                    <Input
-                      id="hourlyRate"
-                      type="number"
-                      value={profileData.hourlyRate}
-                      onChange={(e) => setProfileData({ ...profileData, hourlyRate: Number.parseInt(e.target.value) })}
-                      disabled={!isEditing}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="availability">Availability</Label>
-                    <Select disabled={!isEditing} value={profileData.availability}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Full-time">Full-time</SelectItem>
-                        <SelectItem value="Part-time">Part-time</SelectItem>
-                        <SelectItem value="Project-based">Project-based</SelectItem>
-                        <SelectItem value="Weekends only">Weekends only</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                {/* Bio */}
-                <div>
-                  <Label htmlFor="bio">Bio</Label>
-                  <Textarea
-                    id="bio"
-                    value={profileData.bio}
-                    onChange={(e) => setProfileData({ ...profileData, bio: e.target.value })}
-                    disabled={!isEditing}
-                    rows={4}
-                    placeholder="Tell others about yourself, your experience, and what makes you unique..."
-                  />
-                </div>
-
-                {/* Skills */}
-                <div>
-                  <Label>Skills</Label>
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {profileData.skills.map((skill, index) => (
-                      <Badge key={index} variant="secondary" className="bg-red-50 text-red-700">
-                        {skill}
-                        {isEditing && (
-                          <button
-                            onClick={() => {
-                              const newSkills = profileData.skills.filter((_, i) => i !== index)
-                              setProfileData({ ...profileData, skills: newSkills })
-                            }}
-                            className="ml-2 text-red-500 hover:text-red-700"
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {portfolioItems.map((item) => (
+                    <Card key={item.id} className="overflow-hidden hover:shadow-lg transition-shadow">
+                      <div className="relative">
+                        <img
+                          src={item.image || "/placeholder.svg"}
+                          alt={item.title}
+                          className="w-full h-48 object-cover"
+                        />
+                        <div className="absolute top-2 right-2 flex space-x-1">
+                          <Button size="sm" variant="secondary" className="h-8 w-8 p-0">
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            className="h-8 w-8 p-0"
+                            onClick={() => handleDeletePortfolioItem(item.id)}
                           >
-                            ×
-                          </button>
-                        )}
-                      </Badge>
-                    ))}
-                    {isEditing && (
-                      <Button size="sm" variant="outline" className="h-6">
-                        <Plus className="h-3 w-3 mr-1" />
-                        Add Skill
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                      <CardContent className="p-4">
+                        <h4 className="font-semibold text-gray-900 mb-2">{item.title}</h4>
+                        <p className="text-gray-600 text-sm mb-3">{item.description}</p>
+                        <div className="flex flex-wrap gap-1">
+                          {item.tags.map((tag, index) => (
+                            <Badge key={index} variant="secondary" className="text-xs">
+                              {tag}
+                            </Badge>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
 
-          <TabsContent value="portfolio">
-            <Card>
-              <CardHeader>
-                <div className="flex justify-between items-center">
-                  <div>
-                    <CardTitle>Portfolio</CardTitle>
-                    <CardDescription>Showcase your best work and projects</CardDescription>
-                  </div>
-                  <Link href="/profile/portfolio">
-                    <Button className="bg-red-600 hover:bg-red-700">
-                      <Plus className="h-4 w-4 mr-2" />
-                      Manage Portfolio
-                    </Button>
-                  </Link>
+                  {/* Add New Portfolio Item Card */}
+                  <Card className="border-2 border-dashed border-gray-300 hover:border-red-400 transition-colors cursor-pointer">
+                    <CardContent className="flex flex-col items-center justify-center h-64 text-gray-500">
+                      <Upload className="h-12 w-12 mb-4" />
+                      <p className="text-center">
+                        <span className="font-medium">Click to upload</span>
+                        <br />
+                        or drag and drop your work
+                      </p>
+                    </CardContent>
+                  </Card>
                 </div>
-              </CardHeader>
-              <CardContent>
-                <PortfolioShowcase portfolioItems={portfolioItems} />
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
-      </main>
+              </div>
+            </TabsContent>
+          </Tabs>
+        </div>
+      </div>
     </div>
   )
 }
