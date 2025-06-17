@@ -73,8 +73,7 @@ export default function HomePage() {
             </Button>
             <Button
               size="lg"
-              variant="outline"
-              className="border-white text-white hover:bg-white hover:text-red-700 px-8 py-3"
+              className="border-2 border-white text-white bg-transparent hover:bg-white hover:text-red-700 px-8 py-3"
             >
               <Link href="/browse">Hire a Freelancer</Link>
             </Button>
