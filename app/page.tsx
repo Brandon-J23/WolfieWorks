@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Star, Users, Briefcase, GraduationCap } from "lucide-react"
-import { SignInButton, SignUpButton, SignedIn, SignedOut, UserButton } from "@clerk/nextjs"
 
 export default function HomePage() {
   const featuredFreelancers = [
@@ -47,32 +46,19 @@ export default function HomePage() {
               <Link href="/post-job" className="hover:text-red-200 transition-colors">
                 Post a Job
               </Link>
-              <SignedIn>
-                <Link href="/profile" className="hover:text-red-200 transition-colors">
-                  My Profile
-                </Link>
-              </SignedIn>
+              <Link href="/profile" className="hover:text-red-200 transition-colors">
+                My Profile
+              </Link>
             </nav>
             <div className="flex items-center space-x-3">
-              <SignedOut>
-                <SignInButton>
-                  <Button variant="outline" className="text-red-700 border-white hover:bg-red-50">
-                    Sign In
-                  </Button>
-                </SignInButton>
-                <SignUpButton>
-                  <Button className="bg-white text-red-700 hover:bg-red-50">Sign Up</Button>
-                </SignUpButton>
-              </SignedOut>
-              <SignedIn>
-                <UserButton
-                  appearance={{
-                    elements: {
-                      avatarBox: "h-10 w-10",
-                    },
-                  }}
-                />
-              </SignedIn>
+              <Link href="/sign-in">
+                <Button variant="outline" className="text-red-700 border-white hover:bg-red-50">
+                  Sign In
+                </Button>
+              </Link>
+              <Link href="/sign-up">
+                <Button className="bg-white text-red-700 hover:bg-red-50">Sign Up</Button>
+              </Link>
             </div>
           </div>
         </div>
@@ -86,32 +72,19 @@ export default function HomePage() {
             Find skilled freelancers from your university community or showcase your talents to earn while you learn.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <SignedOut>
-              <SignUpButton>
-                <Button size="lg" className="bg-white text-red-700 hover:bg-red-50 px-8 py-3">
-                  Start as a Freelancer
-                </Button>
-              </SignUpButton>
-              <SignUpButton>
-                <Button
-                  size="lg"
-                  className="border-2 border-white text-white bg-transparent hover:bg-white hover:text-red-700 px-8 py-3"
-                >
-                  Hire a Freelancer
-                </Button>
-              </SignUpButton>
-            </SignedOut>
-            <SignedIn>
+            <Link href="/sign-up">
               <Button size="lg" className="bg-white text-red-700 hover:bg-red-50 px-8 py-3">
-                <Link href="/profile">Start as a Freelancer</Link>
+                Start as a Freelancer
               </Button>
+            </Link>
+            <Link href="/browse">
               <Button
                 size="lg"
                 className="border-2 border-white text-white bg-transparent hover:bg-white hover:text-red-700 px-8 py-3"
               >
-                <Link href="/browse">Hire a Freelancer</Link>
+                Hire a Freelancer
               </Button>
-            </SignedIn>
+            </Link>
           </div>
         </div>
       </section>
