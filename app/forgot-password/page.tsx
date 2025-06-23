@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { GraduationCap, ArrowLeft, Mail } from "lucide-react"
+import { supabase } from "@/lib/supabase/client"
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("")
@@ -19,17 +20,21 @@ export default function ForgotPasswordPage() {
     e.preventDefault()
     setIsLoading(true)
 
-    // Simulate API call
-    //await new Promise((resolve) => setTimeout(resolve, 1500))
-    await fetch("/api/forgot-password",{
-      method: "POST",
-      headers: {"Content-Type": "application/json"},
-      body: JSON.stringify({email}),
-    })
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth/callback?next=/reset-password`,
+      })
 
-    setIsLoading(false)
-    setIsSubmitted(true)
-    console.log("Password reset requested for:", email)
+      if (error) {
+        console.error("Password reset error:", error.message)
+      }
+
+      setIsSubmitted(true)
+    } catch (err) {
+      console.error("Unexpected error:", err)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (

@@ -10,19 +10,64 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { GraduationCap, Eye, EyeOff } from "lucide-react"
+import { supabase } from "@/lib/supabase/client"
 
 export default function SignInPage() {
   const [showPassword, setShowPassword] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [formData, setFormData] = useState({
     email: "",
     password: "",
     rememberMe: false,
   })
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // Handle sign-in logic here
-    console.log("Sign in attempt:", formData)
+    setIsLoading(true)
+    setError(null)
+
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: formData.email,
+        password: formData.password,
+      })
+
+      if (error) {
+        setError(error.message)
+      } else {
+        // Redirect to profile or dashboard
+        window.location.href = "/profile"
+      }
+    } catch (err) {
+      setError("An unexpected error occurred")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleGoogleSignIn = async () => {
+    setIsGoogleLoading(true)
+    setError(null)
+
+    try {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback?next=/profile`,
+        },
+      })
+
+      if (error) {
+        setError(error.message)
+        setIsGoogleLoading(false)
+      }
+      // If successful, user will be redirected, so no need to set loading to false
+    } catch (err) {
+      setError("An unexpected error occurred")
+      setIsGoogleLoading(false)
+    }
   }
 
   return (
@@ -46,6 +91,12 @@ export default function SignInPage() {
               <CardDescription className="text-gray-600">Sign in to your WolfieWorks account</CardDescription>
             </CardHeader>
             <CardContent>
+              {error && (
+                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
+                  <p className="text-sm text-red-600">{error}</p>
+                </div>
+              )}
+
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="space-y-2">
                   <Label htmlFor="email">Email Address</Label>
@@ -56,6 +107,7 @@ export default function SignInPage() {
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     required
+                    disabled={isLoading}
                   />
                 </div>
 
@@ -69,6 +121,7 @@ export default function SignInPage() {
                       value={formData.password}
                       onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                       required
+                      disabled={isLoading}
                     />
                     <Button
                       type="button"
@@ -76,6 +129,7 @@ export default function SignInPage() {
                       size="sm"
                       className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
                       onClick={() => setShowPassword(!showPassword)}
+                      disabled={isLoading}
                     >
                       {showPassword ? (
                         <EyeOff className="h-4 w-4 text-gray-400" />
@@ -92,6 +146,7 @@ export default function SignInPage() {
                       id="remember"
                       checked={formData.rememberMe}
                       onCheckedChange={(checked) => setFormData({ ...formData, rememberMe: checked as boolean })}
+                      disabled={isLoading}
                     />
                     <Label htmlFor="remember" className="text-sm text-gray-600">
                       Remember me
@@ -102,8 +157,8 @@ export default function SignInPage() {
                   </Link>
                 </div>
 
-                <Button type="submit" className="w-full bg-red-600 hover:bg-red-700">
-                  Sign In
+                <Button type="submit" className="w-full bg-red-600 hover:bg-red-700" disabled={isLoading}>
+                  {isLoading ? "Signing In..." : "Sign In"}
                 </Button>
 
                 <div className="relative">
@@ -115,7 +170,13 @@ export default function SignInPage() {
                   </div>
                 </div>
 
-                <Button type="button" variant="outline" className="w-full">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  onClick={handleGoogleSignIn}
+                  disabled={isGoogleLoading || isLoading}
+                >
                   <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
                     <path
                       d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -134,7 +195,7 @@ export default function SignInPage() {
                       fill="#EA4335"
                     />
                   </svg>
-                  Sign in with Google
+                  {isGoogleLoading ? "Signing in with Google..." : "Sign in with Google"}
                 </Button>
               </form>
 
