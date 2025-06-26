@@ -26,7 +26,7 @@ const config: Config = {
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
         primary: {
-          DEFAULT: "#dc2626", // Red-600 for Stony Brook
+          DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
         },
         secondary: {
@@ -53,18 +53,19 @@ const config: Config = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        // Stony Brook University brand colors
-        "sbu-red": {
+        // Stony Brook Red theme colors
+        red: {
           50: "#fef2f2",
           100: "#fee2e2",
           200: "#fecaca",
           300: "#fca5a5",
           400: "#f87171",
           500: "#ef4444",
-          600: "#dc2626", // Primary SBU red
-          700: "#b91c1c",
+          600: "#dc2626", // Primary Stony Brook red
+          700: "#b91c1c", // Darker red for headers
           800: "#991b1b",
           900: "#7f1d1d",
+          950: "#450a0a",
         },
       },
       borderRadius: {
