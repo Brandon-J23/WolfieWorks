@@ -3,10 +3,10 @@
 import type React from "react"
 
 import { useState, useEffect } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useRouter , useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader,CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { GraduationCap, Lock, Eye, EyeOff, CheckCircle } from "lucide-react"
@@ -25,6 +25,7 @@ export default function ResetPasswordPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
 
+  /**
   useEffect(() => {
     // Check if we have a valid session for password reset
     const checkSession = async () => {
@@ -36,6 +37,24 @@ export default function ResetPasswordPage() {
       } else {
         // If no session, redirect to forgot password page
         router.push("/forgot-password")
+      }
+    }
+
+    checkSession()
+  }, [router])
+  */
+
+  useEffect(() => {
+    // Check if we have a valid session for password reset
+    const checkSession = async () => {
+      const { data, error } = await supabase.auth.getSessionFromUrl({
+        storeSession: true,
+      })
+      if (error || !data.session) {
+        // If no valid recovery session, bounce back
+        router.push("/forgot-password")
+      } else {
+        setIsValidSession(true)
       }
     }
 
@@ -77,7 +96,9 @@ export default function ResetPasswordPage() {
       return
     }
 
+    
     try {
+    
       const { error } = await supabase.auth.updateUser({
         password: password,
       })
@@ -96,8 +117,12 @@ export default function ResetPasswordPage() {
     } finally {
       setIsLoading(false)
     }
+    
   }
+  
 
+
+  // Show spinner / blank until getSessionFromUrl resolves
   if (!isValidSession) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">

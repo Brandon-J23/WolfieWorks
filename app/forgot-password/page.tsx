@@ -36,9 +36,9 @@ export default function ForgotPasswordPage() {
         redirectTo: `${window.location.origin}/reset-password`, 
       })
       setIsSubmitted(true)
-      if (error) {
+      /** if (error) {
         setError(error.message)
-      } /** else {
+      }  else {
         setIsSubmitted(true)
       }*/
     } catch (err) {
