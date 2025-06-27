@@ -1,7 +1,7 @@
 "use client"
 
-import { useState } from "react"
-import Link from "next/link"
+import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -10,66 +10,146 @@ import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { GraduationCap, Edit, Trash2, Plus, Upload, Star, MapPin, Mail, Phone } from "lucide-react"
+import { GraduationCap, Star, Upload, Edit, Save, X, Heart, DollarSign, Clock } from "lucide-react"
+import Link from "next/link"
+import { useAuth } from "@/contexts/auth-context"
 
 export default function ProfilePage() {
+  const { user, loading } = useAuth()
+  const router = useRouter()
   const [isEditing, setIsEditing] = useState(false)
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
-  const [portfolioItems, setPortfolioItems] = useState([
+  const [profileData, setProfileData] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+    major: "",
+    year: "",
+    bio: "",
+    skills: [] as string[],
+    hourlyRate: "",
+    location: "",
+  })
+
+  // Mock data for ratings
+  const ratings = [
     {
       id: 1,
-      title: "E-commerce Website",
-      description: "Built a full-stack e-commerce platform using React and Node.js",
-      image: "/placeholder.svg?height=200&width=300",
-      tags: ["React", "Node.js", "MongoDB"],
+      clientName: "John Smith",
+      projectTitle: "E-commerce Website Development",
+      rating: 5,
+      review:
+        "Excellent work! Sarah delivered exactly what we needed on time and within budget. Great communication throughout the project.",
+      date: "2024-01-15",
+      projectType: "Web Development",
     },
     {
       id: 2,
-      title: "Mobile App Design",
-      description: "UI/UX design for a fitness tracking mobile application",
-      image: "/placeholder.svg?height=200&width=300",
-      tags: ["UI/UX", "Figma", "Mobile Design"],
+      clientName: "Marketing Agency Co.",
+      projectTitle: "React Dashboard",
+      rating: 5,
+      review: "Outstanding developer with great attention to detail. The dashboard exceeded our expectations.",
+      date: "2024-01-08",
+      projectType: "Frontend Development",
     },
     {
       id: 3,
-      title: "Brand Identity Package",
-      description: "Complete branding package for a local startup",
-      image: "/placeholder.svg?height=200&width=300",
-      tags: ["Branding", "Logo Design", "Adobe Creative Suite"],
+      clientName: "Tech Startup",
+      projectTitle: "Mobile App UI Design",
+      rating: 4,
+      review: "Good work overall. The design was clean and modern. Minor revisions were needed but handled quickly.",
+      date: "2023-12-20",
+      projectType: "UI/UX Design",
     },
-  ])
+  ]
 
-  const [profile, setProfile] = useState({
-    name: "Alex Thompson",
-    email: "alex.thompson@stonybrook.edu",
-    phone: "(555) 123-4567",
-    major: "Computer Science",
-    year: "Junior",
-    location: "Stony Brook, NY",
-    bio: "Passionate computer science student with experience in full-stack web development and mobile app design. I love creating user-friendly applications that solve real-world problems.",
-    skills: ["JavaScript", "React", "Node.js", "Python", "UI/UX Design"],
-    hourlyRate: "$25",
-    availability: "Part-time",
-  })
+  // Mock data for saved jobs
+  const savedJobs = [
+    {
+      id: 1,
+      title: "Full-Stack Developer for SaaS Platform",
+      company: "TechCorp Inc.",
+      budget: "$2,000 - $5,000",
+      deadline: "2024-02-15",
+      description: "Looking for an experienced full-stack developer to build a customer management platform...",
+      skills: ["React", "Node.js", "PostgreSQL", "AWS"],
+      postedDate: "2024-01-20",
+    },
+    {
+      id: 2,
+      title: "Mobile App Development",
+      company: "StartupXYZ",
+      budget: "$3,000 - $7,000",
+      deadline: "2024-03-01",
+      description: "Need a React Native developer to create a social networking app for college students...",
+      skills: ["React Native", "Firebase", "Redux", "TypeScript"],
+      postedDate: "2024-01-18",
+    },
+    {
+      id: 3,
+      title: "E-commerce Website Redesign",
+      company: "Fashion Boutique",
+      budget: "$1,500 - $3,000",
+      deadline: "2024-02-28",
+      description: "Looking to redesign our existing e-commerce website with modern UI/UX principles...",
+      skills: ["Shopify", "CSS", "JavaScript", "Figma"],
+      postedDate: "2024-01-16",
+    },
+  ]
 
-  const handleDeletePortfolioItem = (id: number) => {
-    setPortfolioItems(portfolioItems.filter((item) => item.id !== id))
+  const averageRating = ratings.reduce((sum, rating) => sum + rating.rating, 0) / ratings.length
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push("/sign-in")
+      return
+    }
+
+    if (user) {
+      setProfileData({
+        firstName: user.user_metadata?.first_name || "",
+        lastName: user.user_metadata?.last_name || "",
+        email: user.email || "",
+        phone: user.user_metadata?.phone || "",
+        major: user.user_metadata?.major || "",
+        year: user.user_metadata?.year || "",
+        bio: user.user_metadata?.bio || "",
+        skills: user.user_metadata?.skills || [],
+        hourlyRate: user.user_metadata?.hourly_rate || "",
+        location: user.user_metadata?.location || "",
+      })
+    }
+  }, [user, loading, router])
+
+  const handleInputChange = (field: string, value: string) => {
+    setProfileData((prev) => ({ ...prev, [field]: value }))
   }
 
-  const handleDeleteProfile = () => {
-    // In a real app, this would delete the profile from the database
-    alert("Profile deleted successfully!")
-    setShowDeleteDialog(false)
+  const handleSave = async () => {
+    // Here you would typically save to Supabase
+    console.log("Saving profile data:", profileData)
+    setIsEditing(false)
+  }
+
+  const handleUnsaveJob = (jobId: number) => {
+    // Here you would remove the job from saved jobs
+    console.log("Unsaving job:", jobId)
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <GraduationCap className="h-12 w-12 text-red-600 mx-auto mb-4 animate-spin" />
+          <p className="text-gray-600">Loading profile...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!user) {
+    return null
   }
 
   return (
@@ -82,9 +162,12 @@ export default function ProfilePage() {
               <GraduationCap className="h-8 w-8" />
               <h1 className="text-2xl font-bold">WolfieWorks</h1>
             </Link>
-            <nav className="flex items-center space-x-6">
+            <nav className="hidden md:flex items-center space-x-6">
               <Link href="/browse" className="hover:text-red-200 transition-colors">
-                Browse Jobs
+                Browse Freelancers
+              </Link>
+              <Link href="/jobs" className="hover:text-red-200 transition-colors">
+                Find Jobs
               </Link>
               <Link href="/dashboard" className="hover:text-red-200 transition-colors">
                 Dashboard
@@ -99,270 +182,274 @@ export default function ProfilePage() {
           {/* Profile Header */}
           <Card className="mb-8">
             <CardHeader>
-              <div className="flex items-start justify-between">
+              <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-4">
-                  <Avatar className="h-24 w-24">
-                    <AvatarImage src="/placeholder.svg?height=96&width=96" />
-                    <AvatarFallback className="bg-red-100 text-red-700 text-xl">
-                      {profile.name
-                        .split(" ")
-                        .map((n) => n[0])
-                        .join("")}
+                  <Avatar className="h-20 w-20">
+                    <AvatarImage src={user.user_metadata?.avatar_url || "/placeholder.svg"} />
+                    <AvatarFallback className="text-2xl">
+                      {profileData.firstName[0]}
+                      {profileData.lastName[0]}
                     </AvatarFallback>
                   </Avatar>
                   <div>
-                    <h2 className="text-3xl font-bold text-gray-900">{profile.name}</h2>
-                    <p className="text-red-600 font-medium">
-                      {profile.major} • {profile.year}
+                    <h1 className="text-3xl font-bold text-gray-900">
+                      {profileData.firstName} {profileData.lastName}
+                    </h1>
+                    <p className="text-gray-600">
+                      {profileData.major} • {profileData.year}
                     </p>
-                    <div className="flex items-center space-x-4 mt-2 text-gray-600">
-                      <div className="flex items-center">
-                        <MapPin className="h-4 w-4 mr-1" />
-                        {profile.location}
-                      </div>
-                      <div className="flex items-center">
-                        <Star className="h-4 w-4 mr-1 fill-yellow-400 text-yellow-400" />
-                        4.9 (23 reviews)
-                      </div>
+                    <div className="flex items-center mt-2">
+                      <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" />
+                      <span className="ml-1 font-semibold">{averageRating.toFixed(1)}</span>
+                      <span className="ml-1 text-gray-500">({ratings.length} reviews)</span>
                     </div>
                   </div>
                 </div>
-                <div className="flex space-x-2">
-                  <Button onClick={() => setIsEditing(!isEditing)} className="bg-red-600 hover:bg-red-700">
-                    <Edit className="h-4 w-4 mr-2" />
-                    {isEditing ? "Cancel" : "Edit Profile"}
-                  </Button>
-                  <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-                    <DialogTrigger asChild>
-                      <Button variant="destructive">
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Delete
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Delete Profile</DialogTitle>
-                        <DialogDescription>
-                          Are you sure you want to delete your profile? This action cannot be undone.
-                        </DialogDescription>
-                      </DialogHeader>
-                      <DialogFooter>
-                        <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>
-                          Cancel
-                        </Button>
-                        <Button variant="destructive" onClick={handleDeleteProfile}>
-                          Delete Profile
-                        </Button>
-                      </DialogFooter>
-                    </DialogContent>
-                  </Dialog>
-                </div>
+                <Button
+                  onClick={() => setIsEditing(!isEditing)}
+                  variant={isEditing ? "outline" : "default"}
+                  className={isEditing ? "" : "bg-red-600 hover:bg-red-700"}
+                >
+                  {isEditing ? (
+                    <>
+                      <X className="mr-2 h-4 w-4" />
+                      Cancel
+                    </>
+                  ) : (
+                    <>
+                      <Edit className="mr-2 h-4 w-4" />
+                      Edit Profile
+                    </>
+                  )}
+                </Button>
               </div>
             </CardHeader>
           </Card>
 
+          {/* Profile Tabs */}
           <Tabs defaultValue="profile" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="profile">Profile Information</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-4">
+              <TabsTrigger value="profile">Profile</TabsTrigger>
               <TabsTrigger value="portfolio">Portfolio</TabsTrigger>
+              <TabsTrigger value="ratings">Ratings</TabsTrigger>
+              <TabsTrigger value="saved-jobs">Saved Jobs</TabsTrigger>
             </TabsList>
 
+            {/* Profile Tab */}
             <TabsContent value="profile">
               <Card>
                 <CardHeader>
                   <CardTitle>Profile Information</CardTitle>
-                  <CardDescription>
-                    {isEditing ? "Edit your profile information" : "Your profile information"}
-                  </CardDescription>
+                  <CardDescription>Manage your personal information and preferences</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  {isEditing ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="space-y-2">
-                        <Label htmlFor="name">Full Name</Label>
-                        <Input
-                          id="name"
-                          value={profile.name}
-                          onChange={(e) => setProfile({ ...profile, name: e.target.value })}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="email">Email</Label>
-                        <Input
-                          id="email"
-                          type="email"
-                          value={profile.email}
-                          onChange={(e) => setProfile({ ...profile, email: e.target.value })}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="phone">Phone</Label>
-                        <Input
-                          id="phone"
-                          value={profile.phone}
-                          onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="major">Major</Label>
-                        <Input
-                          id="major"
-                          value={profile.major}
-                          onChange={(e) => setProfile({ ...profile, major: e.target.value })}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="year">Academic Year</Label>
-                        <Select value={profile.year} onValueChange={(value) => setProfile({ ...profile, year: value })}>
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="Freshman">Freshman</SelectItem>
-                            <SelectItem value="Sophomore">Sophomore</SelectItem>
-                            <SelectItem value="Junior">Junior</SelectItem>
-                            <SelectItem value="Senior">Senior</SelectItem>
-                            <SelectItem value="Graduate">Graduate</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="rate">Hourly Rate</Label>
-                        <Input
-                          id="rate"
-                          value={profile.hourlyRate}
-                          onChange={(e) => setProfile({ ...profile, hourlyRate: e.target.value })}
-                        />
-                      </div>
-                      <div className="md:col-span-2 space-y-2">
-                        <Label htmlFor="bio">Bio</Label>
-                        <Textarea
-                          id="bio"
-                          rows={4}
-                          value={profile.bio}
-                          onChange={(e) => setProfile({ ...profile, bio: e.target.value })}
-                        />
-                      </div>
-                      <div className="md:col-span-2">
-                        <Button className="bg-red-600 hover:bg-red-700" onClick={() => setIsEditing(false)}>
-                          Save Changes
-                        </Button>
-                      </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="firstName">First Name</Label>
+                      <Input
+                        id="firstName"
+                        value={profileData.firstName}
+                        onChange={(e) => handleInputChange("firstName", e.target.value)}
+                        disabled={!isEditing}
+                      />
                     </div>
-                  ) : (
-                    <div className="space-y-6">
-                      <div>
-                        <h4 className="font-semibold text-gray-900 mb-2">About</h4>
-                        <p className="text-gray-700">{profile.bio}</p>
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                          <h4 className="font-semibold text-gray-900 mb-2">Contact Information</h4>
-                          <div className="space-y-2 text-gray-700">
-                            <div className="flex items-center">
-                              <Mail className="h-4 w-4 mr-2" />
-                              {profile.email}
-                            </div>
-                            <div className="flex items-center">
-                              <Phone className="h-4 w-4 mr-2" />
-                              {profile.phone}
-                            </div>
-                          </div>
-                        </div>
-
-                        <div>
-                          <h4 className="font-semibold text-gray-900 mb-2">Work Details</h4>
-                          <div className="space-y-2 text-gray-700">
-                            <p>
-                              <span className="font-medium">Rate:</span> {profile.hourlyRate}/hour
-                            </p>
-                            <p>
-                              <span className="font-medium">Availability:</span> {profile.availability}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div>
-                        <h4 className="font-semibold text-gray-900 mb-3">Skills</h4>
-                        <div className="flex flex-wrap gap-2">
-                          {profile.skills.map((skill, index) => (
-                            <Badge key={index} className="bg-red-100 text-red-700">
-                              {skill}
-                            </Badge>
-                          ))}
-                        </div>
-                      </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="lastName">Last Name</Label>
+                      <Input
+                        id="lastName"
+                        value={profileData.lastName}
+                        onChange={(e) => handleInputChange("lastName", e.target.value)}
+                        disabled={!isEditing}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="email">Email</Label>
+                      <Input id="email" value={profileData.email} disabled />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="phone">Phone</Label>
+                      <Input
+                        id="phone"
+                        value={profileData.phone}
+                        onChange={(e) => handleInputChange("phone", e.target.value)}
+                        disabled={!isEditing}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="major">Major</Label>
+                      <Input
+                        id="major"
+                        value={profileData.major}
+                        onChange={(e) => handleInputChange("major", e.target.value)}
+                        disabled={!isEditing}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="year">Academic Year</Label>
+                      <Select
+                        value={profileData.year}
+                        onValueChange={(value) => handleInputChange("year", value)}
+                        disabled={!isEditing}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select year" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Freshman">Freshman</SelectItem>
+                          <SelectItem value="Sophomore">Sophomore</SelectItem>
+                          <SelectItem value="Junior">Junior</SelectItem>
+                          <SelectItem value="Senior">Senior</SelectItem>
+                          <SelectItem value="Graduate">Graduate</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="bio">Bio</Label>
+                    <Textarea
+                      id="bio"
+                      value={profileData.bio}
+                      onChange={(e) => handleInputChange("bio", e.target.value)}
+                      disabled={!isEditing}
+                      rows={4}
+                      placeholder="Tell us about yourself, your experience, and what makes you unique..."
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="hourlyRate">Hourly Rate</Label>
+                    <Input
+                      id="hourlyRate"
+                      value={profileData.hourlyRate}
+                      onChange={(e) => handleInputChange("hourlyRate", e.target.value)}
+                      disabled={!isEditing}
+                      placeholder="$25"
+                    />
+                  </div>
+                  {isEditing && (
+                    <div className="flex justify-end space-x-4">
+                      <Button variant="outline" onClick={() => setIsEditing(false)}>
+                        Cancel
+                      </Button>
+                      <Button onClick={handleSave} className="bg-red-600 hover:bg-red-700">
+                        <Save className="mr-2 h-4 w-4" />
+                        Save Changes
+                      </Button>
                     </div>
                   )}
                 </CardContent>
               </Card>
             </TabsContent>
 
+            {/* Portfolio Tab */}
             <TabsContent value="portfolio">
-              <div className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-2xl font-bold text-gray-900">Portfolio</h3>
-                    <p className="text-gray-600">Showcase your best work</p>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Portfolio</CardTitle>
+                  <CardDescription>Showcase your best work and projects</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-center py-12">
+                    <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">No portfolio items yet</h3>
+                    <p className="text-gray-600 mb-4">Upload your best work to showcase your skills</p>
+                    <Button className="bg-red-600 hover:bg-red-700">
+                      <Upload className="mr-2 h-4 w-4" />
+                      Upload Portfolio Item
+                    </Button>
                   </div>
-                  <Button className="bg-red-600 hover:bg-red-700">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Portfolio Item
-                  </Button>
-                </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {portfolioItems.map((item) => (
-                    <Card key={item.id} className="overflow-hidden hover:shadow-lg transition-shadow">
-                      <div className="relative">
-                        <img
-                          src={item.image || "/placeholder.svg"}
-                          alt={item.title}
-                          className="w-full h-48 object-cover"
-                        />
-                        <div className="absolute top-2 right-2 flex space-x-1">
-                          <Button size="sm" variant="secondary" className="h-8 w-8 p-0">
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            className="h-8 w-8 p-0"
-                            onClick={() => handleDeletePortfolioItem(item.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+            {/* Ratings Tab */}
+            <TabsContent value="ratings">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Client Reviews</CardTitle>
+                  <CardDescription>See what clients are saying about your work</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-6">
+                    {ratings.map((rating) => (
+                      <div key={rating.id} className="border-b border-gray-200 pb-6 last:border-b-0">
+                        <div className="flex items-start justify-between mb-3">
+                          <div>
+                            <h4 className="font-semibold text-gray-900">{rating.clientName}</h4>
+                            <p className="text-sm text-gray-600">{rating.projectTitle}</p>
+                            <Badge variant="secondary" className="mt-1">
+                              {rating.projectType}
+                            </Badge>
+                          </div>
+                          <div className="text-right">
+                            <div className="flex items-center">
+                              {[...Array(5)].map((_, i) => (
+                                <Star
+                                  key={i}
+                                  className={`h-4 w-4 ${
+                                    i < rating.rating ? "fill-yellow-400 text-yellow-400" : "text-gray-300"
+                                  }`}
+                                />
+                              ))}
+                            </div>
+                            <p className="text-sm text-gray-500 mt-1">{new Date(rating.date).toLocaleDateString()}</p>
+                          </div>
                         </div>
+                        <p className="text-gray-700">{rating.review}</p>
                       </div>
-                      <CardContent className="p-4">
-                        <h4 className="font-semibold text-gray-900 mb-2">{item.title}</h4>
-                        <p className="text-gray-600 text-sm mb-3">{item.description}</p>
-                        <div className="flex flex-wrap gap-1">
-                          {item.tags.map((tag, index) => (
-                            <Badge key={index} variant="secondary" className="text-xs">
-                              {tag}
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Saved Jobs Tab */}
+            <TabsContent value="saved-jobs">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Saved Jobs</CardTitle>
+                  <CardDescription>Jobs you've bookmarked for later</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-6">
+                    {savedJobs.map((job) => (
+                      <div key={job.id} className="border border-gray-200 rounded-lg p-6">
+                        <div className="flex items-start justify-between mb-4">
+                          <div>
+                            <h3 className="text-lg font-semibold text-gray-900 mb-1">{job.title}</h3>
+                            <p className="text-gray-600 mb-2">{job.company}</p>
+                            <div className="flex items-center space-x-4 text-sm text-gray-500">
+                              <div className="flex items-center">
+                                <DollarSign className="h-4 w-4 mr-1" />
+                                {job.budget}
+                              </div>
+                              <div className="flex items-center">
+                                <Clock className="h-4 w-4 mr-1" />
+                                Due {new Date(job.deadline).toLocaleDateString()}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex space-x-2">
+                            <Button size="sm" className="bg-red-600 hover:bg-red-700">
+                              Apply Now
+                            </Button>
+                            <Button size="sm" variant="outline" onClick={() => handleUnsaveJob(job.id)}>
+                              <Heart className="h-4 w-4 fill-red-500 text-red-500" />
+                            </Button>
+                          </div>
+                        </div>
+                        <p className="text-gray-700 mb-4">{job.description}</p>
+                        <div className="flex flex-wrap gap-2">
+                          {job.skills.map((skill) => (
+                            <Badge key={skill} variant="secondary">
+                              {skill}
                             </Badge>
                           ))}
                         </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-
-                  {/* Add New Portfolio Item Card */}
-                  <Card className="border-2 border-dashed border-gray-300 hover:border-red-400 transition-colors cursor-pointer">
-                    <CardContent className="flex flex-col items-center justify-center h-64 text-gray-500">
-                      <Upload className="h-12 w-12 mb-4" />
-                      <p className="text-center">
-                        <span className="font-medium">Click to upload</span>
-                        <br />
-                        or drag and drop your work
-                      </p>
-                    </CardContent>
-                  </Card>
-                </div>
-              </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
             </TabsContent>
           </Tabs>
         </div>

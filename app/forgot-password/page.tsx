@@ -15,23 +15,34 @@ export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("")
   const [isSubmitted, setIsSubmitted] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState("")
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
+    setError("")
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(email)) {
+      setError("Please enter a valid email address")
+      setIsLoading(false)
+      return
+    }
 
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/callback?next=/reset-password`,
+        /** redirectTo: `${window.location.origin}/auth/callback?next=/reset-password`, */
+        redirectTo: `${window.location.origin}/reset-password`, 
       })
-
-      if (error) {
-        console.error("Password reset error:", error.message)
-      }
-
       setIsSubmitted(true)
+      if (error) {
+        setError(error.message)
+      } /** else {
+        setIsSubmitted(true)
+      }*/
     } catch (err) {
-      console.error("Unexpected error:", err)
+      setError("An unexpected error occurred. Please try again.")
     } finally {
       setIsLoading(false)
     }
@@ -70,21 +81,27 @@ export default function ForgotPasswordPage() {
               {!isSubmitted ? (
                 <form onSubmit={handleSubmit} className="space-y-6">
                   <div className="space-y-2">
-                    <Label htmlFor="email">Email Address or Username</Label>
+                    <Label htmlFor="email">Email Address</Label>
                     <Input
                       id="email"
-                      type="text"
-                      placeholder="your.email@stonybrook.edu or username"
+                      type="email"
+                      placeholder="your.email@stonybrook.edu"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       required
                       disabled={isLoading}
                     />
-                    <p className="text-xs text-gray-500">Enter your Stony Brook email address or username</p>
+                    <p className="text-xs text-gray-500">Enter your Stony Brook email address</p>
                   </div>
 
+                  {error && (
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                      <p className="text-sm text-red-800">{error}</p>
+                    </div>
+                  )}
+
                   <Button type="submit" className="w-full bg-red-600 hover:bg-red-700" disabled={isLoading}>
-                    {isLoading ? "Sending..." : "Proceed"}
+                    {isLoading ? "Sending..." : "Send Reset Instructions"}
                   </Button>
 
                   <div className="text-center">
@@ -105,7 +122,8 @@ export default function ForgotPasswordPage() {
                     </div>
 
                     <div className="text-sm text-gray-600">
-                      <p>Didn't receive the email? Check your spam folder or try again.</p>
+                      <p>Click the link in the email to reset your password.</p>
+                      <p className="mt-2">Didn't receive the email? Check your spam folder or try again.</p>
                     </div>
                   </div>
 
@@ -114,6 +132,7 @@ export default function ForgotPasswordPage() {
                       onClick={() => {
                         setIsSubmitted(false)
                         setEmail("")
+                        setError("")
                       }}
                       variant="outline"
                       className="w-full"
