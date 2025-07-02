@@ -18,6 +18,7 @@ interface UserProfile {
   location: string | null
   website: string | null
   avatar_url: string | null
+  user_type: string | null
   created_at: string
   updated_at: string
 }

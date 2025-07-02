@@ -24,6 +24,7 @@ export default function SignUpPage() {
     confirmPassword: "",
     major: "",
     year: "",
+    userType: "", // Add this new field
   })
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
@@ -67,6 +68,12 @@ export default function SignUpPage() {
       return
     }
 
+    if (!formData.userType) {
+      setError("Please select your user type")
+      setLoading(false)
+      return
+    }
+
     try {
       const { data, error } = await supabase.auth.signUp({
         email: formData.email,
@@ -78,6 +85,7 @@ export default function SignUpPage() {
             last_name: formData.lastName,
             major: formData.major,
             year: formData.year,
+            user_type: formData.userType, // Add this line
           },
         },
       })
@@ -225,6 +233,24 @@ export default function SignUpPage() {
               </div>
 
               <div className="space-y-2">
+                <Label htmlFor="userType">I am a...</Label>
+                <Select
+                  value={formData.userType}
+                  onValueChange={(value) => handleInputChange("userType", value)}
+                  required
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select your role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="freelancer">Freelancer</SelectItem>
+                    <SelectItem value="client">Client</SelectItem>
+                    <SelectItem value="both">Both</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
                 <Label htmlFor="password">Password</Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
@@ -303,7 +329,13 @@ export default function SignUpPage() {
               </div>
             </div>
 
-            <Button type="button" variant="outline" className="w-full" onClick={handleGoogleSignUp} disabled={loading}>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full bg-transparent"
+              onClick={handleGoogleSignUp}
+              disabled={loading}
+            >
               <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24">
                 <path
                   fill="currentColor"

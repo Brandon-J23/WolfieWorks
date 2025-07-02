@@ -30,6 +30,7 @@ export default function ProfilePage() {
     skills: [] as string[],
     hourlyRate: "",
     location: "",
+    userType: "", // Add this new field
   })
 
   // Mock data for ratings
@@ -118,6 +119,7 @@ export default function ProfilePage() {
         skills: user.user_metadata?.skills || [],
         hourlyRate: user.user_metadata?.hourly_rate || "",
         location: user.user_metadata?.location || "",
+        userType: user.user_metadata?.user_type || "", // Add this line
       })
     }
   }, [user, loading, router])
@@ -300,6 +302,23 @@ export default function ProfilePage() {
                           <SelectItem value="Junior">Junior</SelectItem>
                           <SelectItem value="Senior">Senior</SelectItem>
                           <SelectItem value="Graduate">Graduate</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="userType">User Type</Label>
+                      <Select
+                        value={profileData.userType}
+                        onValueChange={(value) => handleInputChange("userType", value)}
+                        disabled={!isEditing}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select your role" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="freelancer">Freelancer</SelectItem>
+                          <SelectItem value="client">Client</SelectItem>
+                          <SelectItem value="both">Both</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
