@@ -43,6 +43,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { data, error } = await supabase.from("user_profiles").select("*").eq("id", userId).single()
 
       if (error) {
+        // 42P01 = undefined_table (relation does not exist)
+        if (error.code === "42P01") {
+          console.warn("[auth-context] user_profiles table missing – run the migration SQL or ignore while previewing.")
+          return null
+        }
         console.error("Error fetching profile:", error)
         return null
       }
