@@ -56,7 +56,7 @@ export default function HomePage() {
           <div className="flex items-center justify-between">
             <Link href="/" className="flex items-center space-x-3">
               <GraduationCap className="h-8 w-8" />
-              <h1 className="text-2xl font-thin">WolfieWorks</h1>
+              <h1 className="text-2xl font-bold">WolfieWorks</h1>
             </Link>
             <nav className="hidden md:flex items-center space-x-6">
               <Link href="/browse" className="hover:text-red-200 transition-colors">
