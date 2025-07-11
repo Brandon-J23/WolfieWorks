@@ -324,11 +324,7 @@ export default function SignUpPage() {
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t border-gray-300" />
               </div>
-                            variant="outline"
-              className="w-full bg-transparent"
-              onClick={handleGoogleSignUp}
-              disabled={loading}
-            >
+                      
               <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24">
                 <path
                   fill="currentColor"
