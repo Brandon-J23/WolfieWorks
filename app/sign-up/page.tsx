@@ -329,7 +329,8 @@ export default function SignUpPage() {
               </div>
 
               </div>
-                      
+                                  <Button type="button" variant="outline" className="w-full" onClick={handleGoogleSignUp} disabled={loading}>
+
               <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24">
                 <path
                   fill="currentColor"
