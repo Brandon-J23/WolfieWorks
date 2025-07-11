@@ -1,312 +1,373 @@
 "use client"
 
+import type React from "react"
+
+import { useState } from "react"
+import { useRouter } from "next/navigation"
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { GraduationCap, Star, Users, Briefcase, TrendingUp, ArrowRight } from "lucide-react"
-import Link from "next/link"
-import { useAuth } from "@/contexts/auth-context"
-import { ProfileDropdown } from "@/components/profile-dropdown"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { GraduationCap, Eye, EyeOff, Mail, Lock, User } from "lucide-react"
+import { supabase } from "@/lib/supabase/client"
 
-export default function HomePage() {
-  const { user, profile, loading } = useAuth()
+export default function SignUpPage() {
+  const router = useRouter()
+  const [formData, setFormData] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+    major: "",
+    year: "",
+    userType: "", // Add this new field
+  })
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [agreeToTerms, setAgreeToTerms] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState("")
+  const [success, setSuccess] = useState("")
 
-  const featuredFreelancers = [
-    {
-      id: 1,
-      name: "Sarah Chen",
-      major: "Computer Science",
-      year: "Senior",
-      rating: 4.9,
-      reviews: 23,
-      skills: ["React", "Node.js", "Python"],
-      hourlyRate: 35,
-      image: "/placeholder.svg?height=64&width=64",
-    },
-    {
-      id: 2,
-      name: "Michael Rodriguez",
-      major: "Graphic Design",
-      year: "Junior",
-      rating: 4.8,
-      reviews: 18,
-      skills: ["UI/UX", "Figma", "Adobe Creative Suite"],
-      hourlyRate: 30,
-      image: "/placeholder.svg?height=64&width=64",
-    },
-    {
-      id: 3,
-      name: "Emily Johnson",
-      major: "Business",
-      year: "Sophomore",
-      rating: 4.7,
-      reviews: 15,
-      skills: ["Marketing", "Content Writing", "Social Media"],
-      hourlyRate: 25,
-      image: "/placeholder.svg?height=64&width=64",
-    },
-  ]
+  const handleInputChange = (field: string, value: string) => {
+    setFormData((prev) => ({ ...prev, [field]: value }))
+  }
+
+  const handleEmailSignUp = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoading(true)
+    setError("")
+    setSuccess("")
+
+    // Validation
+    if (formData.password !== formData.confirmPassword) {
+      setError("Passwords do not match")
+      setLoading(false)
+      return
+    }
+
+    if (!formData.email.endsWith("@stonybrook.edu")) {
+      setError("Please use your Stony Brook University email address")
+      setLoading(false)
+      return
+    }
+
+    if (!agreeToTerms) {
+      setError("Please agree to the terms of service")
+      setLoading(false)
+      return
+    }
+
+    if (formData.password.length < 6) {
+      setError("Password must be at least 6 characters long")
+      setLoading(false)
+      return
+    }
+
+    if (!formData.userType) {
+      setError("Please select your user type")
+      setLoading(false)
+      return
+    }
+
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.password,
+        options: {
+          data: {
+            full_name: `${formData.firstName} ${formData.lastName}`,
+            first_name: formData.firstName,
+            last_name: formData.lastName,
+            major: formData.major,
+            year: formData.year,
+            user_type: formData.userType, // Add this line
+          },
+        },
+      })
+
+      if (error) {
+        setError(error.message)
+      } else if (data.user && !data.user.email_confirmed_at) {
+        setSuccess("Please check your email to confirm your account before signing in!")
+      } else {
+        // User is automatically signed in
+        router.push("/profile")
+      }
+    } catch (err) {
+      setError("An unexpected error occurred")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleGoogleSignUp = async () => {
+    setLoading(true)
+    setError("")
+
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
+      })
+
+      if (error) {
+        setError(error.message)
+        setLoading(false)
+      }
+    } catch (err) {
+      setError("An unexpected error occurred")
+      setLoading(false)
+    }
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-red-700 text-white shadow-lg">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <Link href="/" className="flex items-center space-x-3">
-              <GraduationCap className="h-8 w-8" />
-              <h1 className="text-2xl font-bold">WolfieWorks</h1>
-            </Link>
-            <nav className="hidden md:flex items-center space-x-6">
-              <Link href="/browse" className="hover:text-red-200 transition-colors">
-                Browse Freelancers
-              </Link>
-              <Link href="/jobs" className="hover:text-red-200 transition-colors">
-                Find Jobs
-              </Link>
-              <Link href="/about" className="hover:text-red-200 transition-colors">
-                About
-              </Link>
-            </nav>
-            <div className="flex items-center space-x-4">
-              {loading ? (
-                <div className="w-8 h-8 bg-red-600 rounded-full animate-pulse" />
-              ) : user ? (
-                <ProfileDropdown />
-              ) : (
-                <>
-                  <Link href="/sign-in">
-                    <Button variant="ghost" className="text-white hover:text-red-200 hover:bg-red-600">
-                      Sign In
-                    </Button>
-                  </Link>
-                  <Link href="/sign-up">
-                    <Button className="bg-white text-red-700 hover:bg-gray-100">Sign Up</Button>
-                  </Link>
-                </>
-              )}
-            </div>
-          </div>
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full space-y-8">
+        {/* Header */}
+        <div className="text-center">
+          <Link href="/" className="flex items-center justify-center space-x-2 mb-6">
+            <GraduationCap className="h-8 w-8 text-red-600" />
+            <span className="text-2xl font-bold text-gray-900">WolfieWorks</span>
+          </Link>
+          <h2 className="text-3xl font-bold text-gray-900">Join WolfieWorks</h2>
+          <p className="mt-2 text-gray-600">Create your freelancer account</p>
         </div>
-      </header>
 
-      {/* Hero Section */}
-      <section className="bg-gradient-to-br from-red-700 to-red-800 text-white py-20">
-        <div className="container mx-auto px-4 text-center">
-          <h2 className="text-5xl font-bold mb-6">
-            Connect with Talented <span className="text-red-200">Stony Brook</span> Students
-          </h2>
-          <p className="text-xl mb-8 max-w-2xl mx-auto text-red-100">
-            Find skilled freelancers from Stony Brook University for your projects, or showcase your talents to earn
-            while you learn.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            {user ? (
-              <Link href="/profile">
-                <Button size="lg" className="bg-white text-red-700 hover:bg-gray-100">
-                  View My Profile
-                  <ArrowRight className="ml-2 h-5 w-5" />
-                </Button>
-              </Link>
-            ) : (
-              <>
-                <Link href="/sign-up">
-                  <Button size="lg" className="bg-white text-red-700 hover:bg-gray-100">
-                    Get Started as a Freelancer
-                    <ArrowRight className="ml-2 h-5 w-5" />
-                  </Button>
-                </Link>
-                <Link href="/browse">
-                  <Button
-                    size="lg"
-                    variant="outline"
-                    className="border-white text-white hover:bg-white hover:text-red-700 bg-transparent"
-                  >
-                    Hire a Freelancer
-                  </Button>
-                </Link>
-              </>
+        <Card>
+          <CardHeader>
+            <CardTitle>Sign Up</CardTitle>
+            <CardDescription>Create your account to get started</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md text-sm">{error}</div>
             )}
-          </div>
-        </div>
-      </section>
 
-      {/* Stats Section */}
-      <section className="py-16 bg-white">
-        <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
-            <div className="space-y-2">
-              <div className="flex items-center justify-center">
-                <Users className="h-8 w-8 text-red-600 mr-2" />
-                <span className="text-3xl font-bold text-gray-900">500+</span>
+            {success && (
+              <div className="bg-green-50 border border-green-200 text-green-600 px-4 py-3 rounded-md text-sm">
+                {success}
               </div>
-              <p className="text-gray-600">Active Students</p>
-            </div>
-            <div className="space-y-2">
-              <div className="flex items-center justify-center">
-                <Briefcase className="h-8 w-8 text-red-600 mr-2" />
-                <span className="text-3xl font-bold text-gray-900">1,200+</span>
-              </div>
-              <p className="text-gray-600">Projects Completed</p>
-            </div>
-            <div className="space-y-2">
-              <div className="flex items-center justify-center">
-                <TrendingUp className="h-8 w-8 text-red-600 mr-2" />
-                <span className="text-3xl font-bold text-gray-900">4.8</span>
-              </div>
-              <p className="text-gray-600">Average Rating</p>
-            </div>
-          </div>
-        </div>
-      </section>
+            )}
 
-      {/* Featured Freelancers */}
-      <section className="py-16 bg-gray-50">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-12">
-            <h3 className="text-3xl font-bold text-gray-900 mb-4">Featured Freelancers</h3>
-            <p className="text-gray-600 max-w-2xl mx-auto">
-              Discover talented students from various majors ready to help with your projects
-            </p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {featuredFreelancers.map((freelancer) => (
-              <Card key={freelancer.id} className="hover:shadow-lg transition-shadow">
-                <CardHeader className="text-center">
-                  <Avatar className="w-16 h-16 mx-auto mb-4">
-                    <AvatarImage src={freelancer.image || "/placeholder.svg"} alt={freelancer.name} />
-                    <AvatarFallback className="bg-red-100 text-red-700">
-                      {freelancer.name
-                        .split(" ")
-                        .map((n) => n[0])
-                        .join("")}
-                    </AvatarFallback>
-                  </Avatar>
-                  <CardTitle className="text-xl">{freelancer.name}</CardTitle>
-                  <CardDescription>
-                    {freelancer.major} • {freelancer.year}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center justify-center space-x-1">
-                    <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                    <span className="font-semibold">{freelancer.rating}</span>
-                    <span className="text-gray-500">({freelancer.reviews} reviews)</span>
+            <form onSubmit={handleEmailSignUp} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="firstName">First Name</Label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                    <Input
+                      id="firstName"
+                      type="text"
+                      placeholder="John"
+                      value={formData.firstName}
+                      onChange={(e) => handleInputChange("firstName", e.target.value)}
+                      className="pl-10"
+                      required
+                    />
                   </div>
-                  <div className="flex flex-wrap gap-2 justify-center">
-                    {freelancer.skills.map((skill) => (
-                      <Badge key={skill} variant="secondary">
-                        {skill}
-                      </Badge>
-                    ))}
-                  </div>
-                  <div className="text-center">
-                    <span className="text-lg font-semibold text-green-600">${freelancer.hourlyRate}/hr</span>
-                  </div>
-                  <Button className="w-full bg-red-600 hover:bg-red-700">View Profile</Button>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="lastName">Last Name</Label>
+                  <Input
+                    id="lastName"
+                    type="text"
+                    placeholder="Doe"
+                    value={formData.lastName}
+                    onChange={(e) => handleInputChange("lastName", e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
 
-      {/* CTA Section */}
-      <section className="py-16 bg-red-700 text-white">
-        <div className="container mx-auto px-4 text-center">
-          <h3 className="text-3xl font-bold mb-4">Ready to Get Started?</h3>
-          <p className="text-xl mb-8 text-red-100">
-            Join the WolfieWorks community today and start your freelancing journey
-          </p>
-          {!user && (
-            <Link href="/sign-up">
-              <Button size="lg" className="bg-white text-red-700 hover:bg-gray-100">
-                Sign Up Now
-                <ArrowRight className="ml-2 h-5 w-5" />
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="john.doe@stonybrook.edu"
+                    value={formData.email}
+                    onChange={(e) => handleInputChange("email", e.target.value)}
+                    className="pl-10"
+                    required
+                  />
+                </div>
+                <p className="text-xs text-gray-500">Must be a valid Stony Brook University email</p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="major">Major</Label>
+                  <Input
+                    id="major"
+                    type="text"
+                    placeholder="Computer Science"
+                    value={formData.major}
+                    onChange={(e) => handleInputChange("major", e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="year">Academic Year</Label>
+                  <Select value={formData.year} onValueChange={(value) => handleInputChange("year", value)} required>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select year" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Freshman">Freshman</SelectItem>
+                      <SelectItem value="Sophomore">Sophomore</SelectItem>
+                      <SelectItem value="Junior">Junior</SelectItem>
+                      <SelectItem value="Senior">Senior</SelectItem>
+                      <SelectItem value="Graduate">Graduate</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="userType">I am a...</Label>
+                <Select
+                  value={formData.userType}
+                  onValueChange={(value) => handleInputChange("userType", value)}
+                  required
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select your role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="freelancer">Freelancer</SelectItem>
+                    <SelectItem value="client">Client</SelectItem>
+                    <SelectItem value="both">Both</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Create a strong password"
+                    value={formData.password}
+                    onChange={(e) => handleInputChange("password", e.target.value)}
+                    className="pl-10 pr-10"
+                    required
+                    minLength={6}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">Confirm Password</Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <Input
+                    id="confirmPassword"
+                    type={showConfirmPassword ? "text" : "password"}
+                    placeholder="Confirm your password"
+                    value={formData.confirmPassword}
+                    onChange={(e) => handleInputChange("confirmPassword", e.target.value)}
+                    className="pl-10 pr-10"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
+                  >
+                    {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="terms"
+                  checked={agreeToTerms}
+                  onCheckedChange={(checked) => setAgreeToTerms(checked as boolean)}
+                />
+                <Label htmlFor="terms" className="text-sm">
+                  I agree to the{" "}
+                  <Link href="/terms" className="text-red-600 hover:text-red-500">
+                    Terms of Service
+                  </Link>{" "}
+                  and{" "}
+                  <Link href="/privacy" className="text-red-600 hover:text-red-500">
+                    Privacy Policy
+                  </Link>
+                </Label>
+              </div>
+
+              <Button type="submit" className="w-full bg-red-600 hover:bg-red-700" disabled={loading}>
+                {loading ? "Creating account..." : "Create Account"}
               </Button>
-            </Link>
-          )}
-        </div>
-      </section>
+            </form>
 
-      {/* Footer */}
-      <footer className="bg-gray-900 text-white py-12">
-        <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-            <div>
-              <div className="flex items-center space-x-2 mb-4">
-                <GraduationCap className="h-6 w-6" />
-                <span className="text-xl font-bold">WolfieWorks</span>
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-300" />
               </div>
-              <p className="text-gray-400">Connecting Stony Brook University students with freelance opportunities.</p>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-white text-gray-500">Or continue with</span>
+              </div>
             </div>
-            <div>
-              <h4 className="font-semibold mb-4">For Freelancers</h4>
-              <ul className="space-y-2 text-gray-400">
-                <li>
-                  <Link href="/sign-up" className="hover:text-white">
-                    Get Started
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/profile" className="hover:text-white">
-                    Create Profile
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/jobs" className="hover:text-white">
-                    Find Jobs
-                  </Link>
-                </li>
-              </ul>
+
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full bg-transparent"
+              onClick={handleGoogleSignUp}
+              disabled={loading}
+            >
+              <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24">
+                <path
+                  fill="currentColor"
+                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                />
+                <path
+                  fill="currentColor"
+                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                />
+                <path
+                  fill="currentColor"
+                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                />
+                <path
+                  fill="currentColor"
+                  d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                />
+              </svg>
+              {loading ? "Signing up..." : "Sign up with Google"}
+            </Button>
+
+            <div className="text-center">
+              <p className="text-sm text-gray-600">
+                Already have an account?{" "}
+                <Link href="/sign-in" className="text-red-600 hover:text-red-500 font-medium">
+                  Sign in
+                </Link>
+              </p>
             </div>
-            <div>
-              <h4 className="font-semibold mb-4">For Clients</h4>
-              <ul className="space-y-2 text-gray-400">
-                <li>
-                  <Link href="/browse" className="hover:text-white">
-                    Browse Freelancers
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/post-job" className="hover:text-white">
-                    Post a Job
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/how-it-works" className="hover:text-white">
-                    How It Works
-                  </Link>
-                </li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-4">Support</h4>
-              <ul className="space-y-2 text-gray-400">
-                <li>
-                  <Link href="/help" className="hover:text-white">
-                    Help Center
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/contact" className="hover:text-white">
-                    Contact Us
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/about" className="hover:text-white">
-                    About
-                  </Link>
-                </li>
-              </ul>
-            </div>
-          </div>
-          <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
-            <p>&copy; 2024 WolfieWorks. All rights reserved.</p>
-          </div>
-        </div>
-      </footer>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   )
 }
