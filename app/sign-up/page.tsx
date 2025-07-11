@@ -324,14 +324,7 @@ export default function SignUpPage() {
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t border-gray-300" />
               </div>
-              <div className="relative flex justify-center text-sm">
-                
-              </div>
-            </div>
-
-            <Button
-              type="button"
-              variant="outline"
+                            variant="outline"
               className="w-full bg-transparent"
               onClick={handleGoogleSignUp}
               disabled={loading}
