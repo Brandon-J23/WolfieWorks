@@ -8,7 +8,7 @@ const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
   title: "WolfieWorks - Stony Brook University Freelance Platform",
-  description: "Connect with talented Stony Brook University students and alumni for your freelance projects.",
+  description: "Connect with talented Stony Brook University students for your freelance projects",
     generator: 'v0.dev'
 }
 
