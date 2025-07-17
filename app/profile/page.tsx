@@ -28,8 +28,8 @@ export default function ProfilePage() {
     year: "",
     bio: "",
     skills: [] as string[],
-    hourlyRate: "",
-    location: "",
+    hourlyRate: 0,
+    location: "", //what is location bruh
     userType: "", // Add this new field
   })
 
