@@ -8,7 +8,8 @@ export async function createServerClient() {
     auth: {
       storage: {
         getItem: (key: string) => {
-          return cookieStore.get(key)?.value
+          const value = cookieStore.get(key)?.value
+          return value !== undefined ? value : null
         },
         setItem: (key: string, value: string) => {
           cookieStore.set({ name: key, value })
