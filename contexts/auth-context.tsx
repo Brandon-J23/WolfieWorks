@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { createContext, useContext, useEffect, useState } from "react"
 import type { User } from "@supabase/supabase-js"
 import { supabase } from "@/lib/supabase/client"
@@ -19,7 +18,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Get initial session
     const getInitialSession = async () => {
       const {
         data: { session },
@@ -30,12 +28,53 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     getInitialSession()
 
-    // Listen for auth changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
-      setUser(session?.user ?? null)
-      setLoading(false)
+      if (session?.user) {
+        setUser(session.user)
+        console.log("User signed in:", session.user)
+
+        try {
+          // Check if profile already exists
+          const { data: existingProfile, error: fetchError } = await supabase
+            .from("profiles")
+            .select("id")
+            .eq("id", session.user.id)
+            .single()
+
+          if (fetchError || !existingProfile) {
+            console.log("No profile found. Inserting new profile.")
+
+            const { error: insertError } = await supabase.from("profiles").insert({
+              id: session.user.id,
+              email: session.user.email,
+              first_name: session.user.user_metadata?.first_name ?? "",
+              last_name: session.user.user_metadata?.last_name ?? "",
+              phone: session.user.user_metadata?.phone ?? "",
+              department: session.user.user_metadata?.major ?? "",
+              year: session.user.user_metadata?.year ?? "",
+              bio: session.user.user_metadata?.bio ?? "",
+              skills: session.user.user_metadata?.skills ?? [],
+              hourly_rate: session.user.user_metadata?.hourly_rate ?? "",
+              location: session.user.user_metadata?.location ?? "",
+            })
+
+            if (insertError) {
+              console.error("Error inserting profile:", insertError)
+            } else {
+              console.log("Profile inserted successfully.")
+            }
+          }
+        } catch (err) {
+          console.error("Unexpected error inserting profile:", err)
+        }
+
+        setLoading(false)
+      } else {
+        setUser(null)
+        setLoading(false)
+      }
     })
 
     return () => subscription.unsubscribe()

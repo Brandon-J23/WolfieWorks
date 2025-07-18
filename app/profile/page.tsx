@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { supabase } from "@/lib/supabase/client" // Adjust if your client is elsewhere
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -14,11 +15,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { GraduationCap, Star, Upload, Edit, Save, X, Heart, DollarSign, Clock } from "lucide-react"
 import Link from "next/link"
 import { useAuth } from "@/contexts/auth-context"
+import { createClient } from "@supabase/supabase-js";
 
 export default function ProfilePage() {
   const { user, loading } = useAuth()
+  const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
   const router = useRouter()
   const [isEditing, setIsEditing] = useState(false)
+  const [saveSuccess, setSaveSuccess] = useState(false)
   const [profileData, setProfileData] = useState({
     firstName: "",
     lastName: "",
@@ -100,40 +104,76 @@ export default function ProfilePage() {
 
   const averageRating = ratings.reduce((sum, rating) => sum + rating.rating, 0) / ratings.length
 
-  useEffect(() => {
-    if (!loading && !user) {
-      router.push("/sign-in")
+  // ✅ Load profile from Supabase
+  const loadProfile = async () => {
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", user?.id)
+      .single()
+
+    if (error) {
+      console.error("Failed to load profile:", error)
       return
     }
 
-    if (user) {
-      setProfileData({
-        firstName: user.user_metadata?.first_name || "",
-        lastName: user.user_metadata?.last_name || "",
-        email: user.email || "",
-        phone: user.user_metadata?.phone || "",
-        major: user.user_metadata?.major || "",
-        year: user.user_metadata?.year || "",
-        bio: user.user_metadata?.bio || "",
-        skills: user.user_metadata?.skills || [],
-        hourlyRate: user.user_metadata?.hourly_rate || "",
-        location: user.user_metadata?.location || "",
-      })
+    setProfileData({
+      firstName: data.first_name || "",
+      lastName: data.last_name || "",
+      email: data.email || "",
+      phone: data.phone || "",
+      major: data.major || "",
+      year: data.year || "",
+      bio: data.bio || "",
+      skills: data.skills || [],
+      hourlyRate: data.hourly_rate || "",
+      location: data.location || "",
+    })
+  }
+
+  // ✅ Fetch profile once user is loaded
+  useEffect(() => {
+    if (!loading && user) {
+      loadProfile()
+    } else if (!loading && !user) {
+      router.push("/sign-in")
     }
   }, [user, loading, router])
 
+  // ✅ Handle input changes
   const handleInputChange = (field: string, value: string) => {
     setProfileData((prev) => ({ ...prev, [field]: value }))
   }
 
+  // ✅ Save profile changes to Supabase
   const handleSave = async () => {
-    // Here you would typically save to Supabase
-    console.log("Saving profile data:", profileData)
+    if (!user) return
+
+    const { error: profileError } = await supabase
+      .from("profiles")
+      .update({
+        first_name: profileData.firstName,
+        last_name: profileData.lastName,
+        phone: profileData.phone,
+        major: profileData.major,
+        year: profileData.year,
+        bio: profileData.bio,
+        skills: profileData.skills,
+        hourly_rate: profileData.hourlyRate,
+      })
+      .eq("id", user.id)
+
+    if (profileError) {
+      console.error("Failed to update profile table:", profileError)
+      return
+    }
+
     setIsEditing(false)
+    setSaveSuccess(true)
+    setTimeout(() => setSaveSuccess(false), 2000)
   }
 
   const handleUnsaveJob = (jobId: number) => {
-    // Here you would remove the job from saved jobs
     console.log("Unsaving job:", jobId)
   }
 
@@ -148,9 +188,7 @@ export default function ProfilePage() {
     )
   }
 
-  if (!user) {
-    return null
-  }
+  if (!user) return null
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -325,6 +363,9 @@ export default function ProfilePage() {
                       placeholder="$25"
                     />
                   </div>
+                  {saveSuccess && (
+                    <div className="text-green-600 font-semibold mb-2">Profile saved!</div>
+                  )}
                   {isEditing && (
                     <div className="flex justify-end space-x-4">
                       <Button variant="outline" onClick={() => setIsEditing(false)}>
