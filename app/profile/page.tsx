@@ -14,11 +14,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { GraduationCap, Star, Upload, Edit, Save, X, Heart, DollarSign, Clock } from "lucide-react"
 import Link from "next/link"
 import { useAuth } from "@/contexts/auth-context"
+import { toast } from "@/hooks/use-toast"
 
 export default function ProfilePage() {
-  const { user, loading } = useAuth()
+  const { user, profile, loading, updateProfile } = useAuth()
   const router = useRouter()
   const [isEditing, setIsEditing] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
   const [profileData, setProfileData] = useState({
     firstName: "",
     lastName: "",
@@ -28,9 +30,9 @@ export default function ProfilePage() {
     year: "",
     bio: "",
     skills: [] as string[],
-    hourlyRate: 0,
-    location: "", //what is location bruh
-    userType: "", // Add this new field
+    hourlyRate: "",
+    location: "",
+    userType: "",
   })
 
   // Mock data for ratings
@@ -108,30 +110,67 @@ export default function ProfilePage() {
     }
 
     if (user) {
+      // Use profile data from database if available, otherwise fall back to user metadata
+      const sourceData = profile || user.user_metadata
+
       setProfileData({
-        firstName: user.user_metadata?.first_name || "",
-        lastName: user.user_metadata?.last_name || "",
+        firstName: sourceData?.first_name || "",
+        lastName: sourceData?.last_name || "",
         email: user.email || "",
-        phone: user.user_metadata?.phone || "",
-        major: user.user_metadata?.major || "",
-        year: user.user_metadata?.year || "",
-        bio: user.user_metadata?.bio || "",
-        skills: user.user_metadata?.skills || [],
-        hourlyRate: user.user_metadata?.hourly_rate || "",
-        location: user.user_metadata?.location || "",
-        userType: user.user_metadata?.user_type || "", // Add this line
+        phone: sourceData?.phone || "",
+        major: sourceData?.major || "",
+        year: sourceData?.academic_year || sourceData?.year || "",
+        bio: sourceData?.bio || "",
+        skills: sourceData?.skills || [],
+        hourlyRate: sourceData?.hourly_rate?.toString() || "",
+        location: sourceData?.location || "",
+        userType: sourceData?.user_type || "",
       })
     }
-  }, [user, loading, router])
+  }, [user, profile, loading, router])
 
   const handleInputChange = (field: string, value: string) => {
     setProfileData((prev) => ({ ...prev, [field]: value }))
   }
 
   const handleSave = async () => {
-    // Here you would typically save to Supabase
-    console.log("Saving profile data:", profileData)
-    setIsEditing(false)
+    if (!user) return
+
+    setIsSaving(true)
+
+    try {
+      // Prepare the update data
+      const updateData = {
+        first_name: profileData.firstName,
+        last_name: profileData.lastName,
+        phone: profileData.phone,
+        major: profileData.major,
+        academic_year: profileData.year,
+        bio: profileData.bio,
+        skills: profileData.skills,
+        hourly_rate: profileData.hourlyRate ? Number.parseFloat(profileData.hourlyRate) : null,
+        location: profileData.location,
+        user_type: profileData.userType,
+      }
+
+      // Update the profile in the database
+      await updateProfile(updateData)
+
+      setIsEditing(false)
+      toast({
+        title: "Profile updated",
+        description: "Your profile has been successfully updated.",
+      })
+    } catch (error) {
+      console.error("Error saving profile:", error)
+      toast({
+        title: "Error",
+        description: "Failed to update profile. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   const handleUnsaveJob = (jobId: number) => {
@@ -211,6 +250,7 @@ export default function ProfilePage() {
                   onClick={() => setIsEditing(!isEditing)}
                   variant={isEditing ? "outline" : "default"}
                   className={isEditing ? "" : "bg-red-600 hover:bg-red-700"}
+                  disabled={isSaving}
                 >
                   {isEditing ? (
                     <>
@@ -341,17 +381,18 @@ export default function ProfilePage() {
                       value={profileData.hourlyRate}
                       onChange={(e) => handleInputChange("hourlyRate", e.target.value)}
                       disabled={!isEditing}
-                      placeholder="$25"
+                      placeholder="25"
+                      type="number"
                     />
                   </div>
                   {isEditing && (
                     <div className="flex justify-end space-x-4">
-                      <Button variant="outline" onClick={() => setIsEditing(false)}>
+                      <Button variant="outline" onClick={() => setIsEditing(false)} disabled={isSaving}>
                         Cancel
                       </Button>
-                      <Button onClick={handleSave} className="bg-red-600 hover:bg-red-700">
+                      <Button onClick={handleSave} className="bg-red-600 hover:bg-red-700" disabled={isSaving}>
                         <Save className="mr-2 h-4 w-4" />
-                        Save Changes
+                        {isSaving ? "Saving..." : "Save Changes"}
                       </Button>
                     </div>
                   )}
