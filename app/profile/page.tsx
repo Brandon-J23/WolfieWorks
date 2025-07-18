@@ -21,6 +21,7 @@ export default function ProfilePage() {
   const router = useRouter()
   const [isEditing, setIsEditing] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [hourlyRateError, setHourlyRateError] = useState("")
   const [profileData, setProfileData] = useState({
     firstName: "",
     lastName: "",
@@ -130,11 +131,28 @@ export default function ProfilePage() {
   }, [user, profile, loading, router])
 
   const handleInputChange = (field: string, value: string) => {
-    setProfileData((prev) => ({ ...prev, [field]: value }))
+    if (field === "hourlyRate") {
+      // Validate hourly rate - only allow numbers and decimal points
+      const numberRegex = /^\d*\.?\d*$/
+      if (value === "" || numberRegex.test(value)) {
+        setHourlyRateError("")
+        setProfileData((prev) => ({ ...prev, [field]: value }))
+      } else {
+        setHourlyRateError("Numbers only")
+      }
+    } else {
+      setProfileData((prev) => ({ ...prev, [field]: value }))
+    }
   }
 
   const handleSave = async () => {
     if (!user) return
+
+    // Validate hourly rate before saving
+    if (profileData.hourlyRate && !/^\d*\.?\d*$/.test(profileData.hourlyRate)) {
+      setHourlyRateError("Numbers only")
+      return
+    }
 
     setIsSaving(true)
 
@@ -375,22 +393,34 @@ export default function ProfilePage() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="hourlyRate">Hourly Rate</Label>
+                    <Label htmlFor="hourlyRate">Hourly Rate ($)</Label>
                     <Input
                       id="hourlyRate"
                       value={profileData.hourlyRate}
                       onChange={(e) => handleInputChange("hourlyRate", e.target.value)}
                       disabled={!isEditing}
-                      placeholder="25"
-                      type="number"
+                      placeholder="25.00"
+                      className={hourlyRateError ? "border-red-500" : ""}
                     />
+                    {hourlyRateError && <p className="text-sm text-red-500 mt-1">{hourlyRateError}</p>}
                   </div>
                   {isEditing && (
                     <div className="flex justify-end space-x-4">
-                      <Button variant="outline" onClick={() => setIsEditing(false)} disabled={isSaving}>
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setIsEditing(false)
+                          setHourlyRateError("")
+                        }}
+                        disabled={isSaving}
+                      >
                         Cancel
                       </Button>
-                      <Button onClick={handleSave} className="bg-red-600 hover:bg-red-700" disabled={isSaving}>
+                      <Button
+                        onClick={handleSave}
+                        className="bg-red-600 hover:bg-red-700"
+                        disabled={isSaving || !!hourlyRateError}
+                      >
                         <Save className="mr-2 h-4 w-4" />
                         {isSaving ? "Saving..." : "Save Changes"}
                       </Button>
