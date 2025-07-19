@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { createContext, useContext, useEffect, useState } from "react"
 import type { User } from "@supabase/supabase-js"
 import { supabase } from "@/lib/supabase/client"
@@ -19,6 +18,7 @@ interface UserProfile {
   hourly_rate?: number
   location?: string
   user_type?: string
+  payment_methods?: string[]
   created_at: string
   updated_at: string
 }
@@ -37,7 +37,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
-  const supabase = supabase()
 
   useEffect(() => {
     // Get initial session
@@ -144,6 +143,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           hourly_rate: data.hourly_rate,
           location: data.location,
           user_type: data.user_type,
+          payment_methods: data.payment_methods,
         },
       })
 

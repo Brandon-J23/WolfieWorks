@@ -11,10 +11,76 @@ import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { GraduationCap, Star, Upload, Edit, Save, X, Heart, DollarSign, Clock } from "lucide-react"
+import { Checkbox } from "@/components/ui/checkbox"
+import { GraduationCap, Star, Upload, Edit, Save, X, Heart, DollarSign, Clock, Plus } from "lucide-react"
 import Link from "next/link"
 import { useAuth } from "@/contexts/auth-context"
 import { toast } from "@/hooks/use-toast"
+
+const AVAILABLE_SKILLS = [
+  "JavaScript",
+  "TypeScript",
+  "React",
+  "Next.js",
+  "Node.js",
+  "Python",
+  "Java",
+  "C++",
+  "HTML/CSS",
+  "Vue.js",
+  "Angular",
+  "PHP",
+  "Ruby",
+  "Go",
+  "Rust",
+  "Swift",
+  "Kotlin",
+  "Flutter",
+  "React Native",
+  "MongoDB",
+  "PostgreSQL",
+  "MySQL",
+  "Redis",
+  "AWS",
+  "Azure",
+  "Google Cloud",
+  "Docker",
+  "Kubernetes",
+  "GraphQL",
+  "REST APIs",
+  "UI/UX Design",
+  "Figma",
+  "Adobe Creative Suite",
+  "WordPress",
+  "Shopify",
+  "Digital Marketing",
+  "SEO",
+  "Content Writing",
+  "Data Analysis",
+  "Machine Learning",
+  "AI",
+  "Blockchain",
+  "Cybersecurity",
+  "DevOps",
+  "Testing/QA",
+  "Project Management",
+  "Agile/Scrum",
+]
+
+const PAYMENT_METHODS = [
+  "PayPal",
+  "Venmo",
+  "Zelle",
+  "Cash App",
+  "Apple Pay",
+  "Google Pay",
+  "Bank Transfer",
+  "Check",
+  "Cash",
+  "Stripe",
+  "Square",
+  "Cryptocurrency",
+]
 
 export default function ProfilePage() {
   const { user, profile, loading, updateProfile } = useAuth()
@@ -22,6 +88,7 @@ export default function ProfilePage() {
   const [isEditing, setIsEditing] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [hourlyRateError, setHourlyRateError] = useState("")
+  const [newSkill, setNewSkill] = useState("")
   const [profileData, setProfileData] = useState({
     firstName: "",
     lastName: "",
@@ -34,6 +101,7 @@ export default function ProfilePage() {
     hourlyRate: "",
     location: "",
     userType: "",
+    paymentMethods: [] as string[],
   })
 
   // Mock data for ratings
@@ -126,6 +194,7 @@ export default function ProfilePage() {
         hourlyRate: sourceData?.hourly_rate?.toString() || "",
         location: sourceData?.location || "",
         userType: sourceData?.user_type || "",
+        paymentMethods: sourceData?.payment_methods || [],
       })
     }
   }, [user, profile, loading, router])
@@ -143,6 +212,39 @@ export default function ProfilePage() {
     } else {
       setProfileData((prev) => ({ ...prev, [field]: value }))
     }
+  }
+
+  const handleSkillToggle = (skill: string) => {
+    setProfileData((prev) => ({
+      ...prev,
+      skills: prev.skills.includes(skill) ? prev.skills.filter((s) => s !== skill) : [...prev.skills, skill],
+    }))
+  }
+
+  const handleAddCustomSkill = () => {
+    if (newSkill.trim() && !profileData.skills.includes(newSkill.trim())) {
+      setProfileData((prev) => ({
+        ...prev,
+        skills: [...prev.skills, newSkill.trim()],
+      }))
+      setNewSkill("")
+    }
+  }
+
+  const handleRemoveSkill = (skillToRemove: string) => {
+    setProfileData((prev) => ({
+      ...prev,
+      skills: prev.skills.filter((skill) => skill !== skillToRemove),
+    }))
+  }
+
+  const handlePaymentMethodToggle = (method: string) => {
+    setProfileData((prev) => ({
+      ...prev,
+      paymentMethods: prev.paymentMethods.includes(method)
+        ? prev.paymentMethods.filter((m) => m !== method)
+        : [...prev.paymentMethods, method],
+    }))
   }
 
   const handleSave = async () => {
@@ -169,6 +271,7 @@ export default function ProfilePage() {
         hourly_rate: profileData.hourlyRate ? Number.parseFloat(profileData.hourlyRate) : null,
         location: profileData.location,
         user_type: profileData.userType,
+        payment_methods: profileData.paymentMethods,
       }
 
       // Update the profile in the database
@@ -380,7 +483,18 @@ export default function ProfilePage() {
                         </SelectContent>
                       </Select>
                     </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="location">Location</Label>
+                      <Input
+                        id="location"
+                        value={profileData.location}
+                        onChange={(e) => handleInputChange("location", e.target.value)}
+                        disabled={!isEditing}
+                        placeholder="City, State"
+                      />
+                    </div>
                   </div>
+
                   <div className="space-y-2">
                     <Label htmlFor="bio">Bio</Label>
                     <Textarea
@@ -392,6 +506,145 @@ export default function ProfilePage() {
                       placeholder="Tell us about yourself, your experience, and what makes you unique..."
                     />
                   </div>
+
+                  {/* Skills Section */}
+                  <div className="space-y-4">
+                    <Label>Skills</Label>
+                    {!isEditing ? (
+                      <div className="flex flex-wrap gap-2">
+                        {profileData.skills.length > 0 ? (
+                          profileData.skills.map((skill) => (
+                            <Badge key={skill} variant="secondary">
+                              {skill}
+                            </Badge>
+                          ))
+                        ) : (
+                          <p className="text-gray-500 text-sm">No skills added yet</p>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {/* Selected Skills */}
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium">Selected Skills</Label>
+                          <div className="flex flex-wrap gap-2 min-h-[40px] p-2 border rounded-md">
+                            {profileData.skills.length > 0 ? (
+                              profileData.skills.map((skill) => (
+                                <Badge key={skill} variant="default" className="bg-red-600 hover:bg-red-700">
+                                  {skill}
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRemoveSkill(skill)}
+                                    className="ml-2 hover:text-red-200"
+                                  >
+                                    <X className="h-3 w-3" />
+                                  </button>
+                                </Badge>
+                              ))
+                            ) : (
+                              <p className="text-gray-500 text-sm">No skills selected</p>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Add Custom Skill */}
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium">Add Custom Skill</Label>
+                          <div className="flex gap-2">
+                            <Input
+                              value={newSkill}
+                              onChange={(e) => setNewSkill(e.target.value)}
+                              placeholder="Enter a skill..."
+                              onKeyPress={(e) => e.key === "Enter" && handleAddCustomSkill()}
+                            />
+                            <Button
+                              type="button"
+                              onClick={handleAddCustomSkill}
+                              size="sm"
+                              className="bg-red-600 hover:bg-red-700"
+                            >
+                              <Plus className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+
+                        {/* Available Skills */}
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium">Available Skills</Label>
+                          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 max-h-60 overflow-y-auto p-2 border rounded-md">
+                            {AVAILABLE_SKILLS.map((skill) => (
+                              <div key={skill} className="flex items-center space-x-2">
+                                <Checkbox
+                                  id={skill}
+                                  checked={profileData.skills.includes(skill)}
+                                  onCheckedChange={() => handleSkillToggle(skill)}
+                                />
+                                <Label htmlFor={skill} className="text-sm cursor-pointer">
+                                  {skill}
+                                </Label>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Payment Methods Section */}
+                  <div className="space-y-4">
+                    <Label>Payment Methods</Label>
+                    {!isEditing ? (
+                      <div className="flex flex-wrap gap-2">
+                        {profileData.paymentMethods.length > 0 ? (
+                          profileData.paymentMethods.map((method) => (
+                            <Badge key={method} variant="outline">
+                              {method}
+                            </Badge>
+                          ))
+                        ) : (
+                          <p className="text-gray-500 text-sm">No payment methods selected</p>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {/* Selected Payment Methods */}
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium">Selected Payment Methods</Label>
+                          <div className="flex flex-wrap gap-2 min-h-[40px] p-2 border rounded-md">
+                            {profileData.paymentMethods.length > 0 ? (
+                              profileData.paymentMethods.map((method) => (
+                                <Badge key={method} variant="outline" className="border-red-600 text-red-600">
+                                  {method}
+                                </Badge>
+                              ))
+                            ) : (
+                              <p className="text-gray-500 text-sm">No payment methods selected</p>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Available Payment Methods */}
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium">Available Payment Methods</Label>
+                          <div className="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-48 overflow-y-auto p-2 border rounded-md">
+                            {PAYMENT_METHODS.map((method) => (
+                              <div key={method} className="flex items-center space-x-2">
+                                <Checkbox
+                                  id={method}
+                                  checked={profileData.paymentMethods.includes(method)}
+                                  onCheckedChange={() => handlePaymentMethodToggle(method)}
+                                />
+                                <Label htmlFor={method} className="text-sm cursor-pointer">
+                                  {method}
+                                </Label>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
                   <div className="space-y-2">
                     <Label htmlFor="hourlyRate">Hourly Rate ($)</Label>
                     <Input
@@ -404,6 +657,7 @@ export default function ProfilePage() {
                     />
                     {hourlyRateError && <p className="text-sm text-red-500 mt-1">{hourlyRateError}</p>}
                   </div>
+
                   {isEditing && (
                     <div className="flex justify-end space-x-4">
                       <Button
@@ -411,6 +665,7 @@ export default function ProfilePage() {
                         onClick={() => {
                           setIsEditing(false)
                           setHourlyRateError("")
+                          setNewSkill("")
                         }}
                         disabled={isSaving}
                       >
