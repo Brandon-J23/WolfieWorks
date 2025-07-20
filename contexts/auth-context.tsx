@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabase/client"
 
 interface UserProfile {
   id: string
+  user_id: string
   first_name?: string
   last_name?: string
   phone?: string
@@ -74,7 +75,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const fetchProfile = async (userId: string) => {
     try {
-      const { data, error } = await supabase.from("user_profiles").select("*").eq("id", userId).single()
+      const { data, error } = await supabase.from("user_profiles").select("*").eq("user_id", userId).single()
 
       if (error && error.code !== "PGRST116") {
         console.error("Error fetching profile:", error)
@@ -92,7 +93,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     try {
       // First, try to update existing profile
-      const { data: existingProfile } = await supabase.from("user_profiles").select("id").eq("id", user.id).single()
+      const { data: existingProfile, error: fetchError } = await supabase
+        .from("user_profiles")
+        .select("id")
+        .eq("user_id", user.id)
+        .single()
 
       if (existingProfile) {
         // Update existing profile
@@ -102,7 +107,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             ...data,
             updated_at: new Date().toISOString(),
           })
-          .eq("id", user.id)
+          .eq("user_id", user.id)
           .select()
           .single()
 
@@ -113,7 +118,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const { data: newProfile, error: insertError } = await supabase
           .from("user_profiles")
           .insert({
-            id: user.id,
+            user_id: user.id,
             ...data,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
