@@ -9,7 +9,7 @@ COMMENT ON COLUMN user_profiles.payment_methods IS 'Array of payment methods acc
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
-  INSERT INTO public.user_profiles (id, first_name, last_name, user_type, major, payment_methods)
+  INSERT INTO public.user_profiles (first_name, last_name, user_type, major, payment_methods)
   VALUES (
     NEW.id,
     COALESCE(NEW.raw_user_meta_data->>'first_name', ''),
