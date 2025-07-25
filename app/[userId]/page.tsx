@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -14,11 +14,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { GraduationCap, Star, Upload, Edit, Save, X, Heart, DollarSign, Clock } from "lucide-react"
 import Link from "next/link"
 import { useAuth } from "@/contexts/auth-context"
+import { majors } from "@/lib/majors"
 
 export default function ProfilePage() {
   const { user, loading } = useAuth()
   const router = useRouter()
   const [isEditing, setIsEditing] = useState(false)
+  const [majorSearchTerm, setMajorSearchTerm] = useState("")
+  const filteredMajors = useMemo(
+    () => majors.filter(m => m.toLowerCase().includes(majorSearchTerm.toLowerCase())),
+    [majorSearchTerm]
+  )
   const [profileData, setProfileData] = useState({
     firstName: "",
     lastName: "",
@@ -277,12 +283,20 @@ export default function ProfilePage() {
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="major">Major</Label>
-                      <Input
-                        id="major"
+                      <Select
                         value={profileData.major}
-                        onChange={(e) => handleInputChange("major", e.target.value)}
+                        onValueChange={(value) => handleInputChange("major", value)}
                         disabled={!isEditing}
-                      />
+                      >
+                        <SelectTrigger id="major">
+                          <SelectValue placeholder="Select major" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {majors.map((m) => (
+                            <SelectItem key={m} value={m}>{m}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="year">Academic Year</Label>

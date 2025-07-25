@@ -22,96 +22,152 @@ import { useRouter } from "next/navigation"
 import { useAuth } from "@/contexts/auth-context"
 import { ProfileDropdown } from "@/components/profile-dropdown"
 import { useIsMobile } from "@/hooks/use-mobile"
+import { majors } from "@/lib/majors"
+import { supabase } from "@/lib/supabase/client"
 
-// Mock freelancer data - in real app this would come from your database
-const mockFreelancers = [
-  {
-    id: 1,
-    name: "Sarah Chen",
-    major: "Computer Science",
-    year: "Senior",
-    rating: 4.9,
-    reviews: 23,
-    skills: ["React", "Node.js", "Python"],
-    hourlyRate: 35,
-    paymentMethods: ["Zelle", "Paypal", "Venmo"],
-    bio: "Experienced full-stack developer with 3 years of experience building web applications. Passionate about creating efficient and scalable solutions.",
-    image: "/placeholder.svg?height=64&width=64",
-  },
-  {
-    id: 2,
-    name: "Michael Rodriguez",
-    major: "Graphic Design",
-    year: "Junior",
-    rating: 4.8,
-    reviews: 18,
-    skills: ["UI/UX", "Figma", "Adobe Creative Suite"],
-    hourlyRate: 30,
-    paymentMethods: ["CashApp", "Venmo", "Apple Pay"],
-    bio: "Creative designer specializing in user interface design and brand identity. Love bringing ideas to life through visual storytelling.",
-    image: "/placeholder.svg?height=64&width=64",
-  },
-  {
-    id: 3,
-    name: "Emily Johnson",
-    major: "Business",
-    year: "Sophomore",
-    rating: 4.7,
-    reviews: 15,
-    skills: ["Marketing", "Content Writing", "Social Media"],
-    hourlyRate: 25,
-    paymentMethods: ["Zelle", "Google Pay", "Paypal"],
-    bio: "Marketing enthusiast with expertise in digital marketing strategies and content creation. Experienced in managing social media campaigns.",
-    image: "/placeholder.svg?height=64&width=64",
-  },
-  {
-    id: 4,
-    name: "Alex Thompson",
-    major: "Engineering",
-    year: "Senior",
-    rating: 4.6,
-    reviews: 12,
-    skills: ["CAD", "3D Modeling", "AutoCAD"],
-    hourlyRate: 40,
-    paymentMethods: ["Paypal", "Zelle"],
-    bio: "Mechanical engineering student with strong CAD skills and experience in product design and prototyping.",
-    image: "/placeholder.svg?height=64&width=64",
-  },
-  {
-    id: 5,
-    name: "Jessica Wu",
-    major: "Psychology",
-    year: "Junior",
-    rating: 4.9,
-    reviews: 28,
-    skills: ["Research", "Data Analysis", "Writing"],
-    hourlyRate: 28,
-    paymentMethods: ["Venmo", "CashApp", "Apple Pay"],
-    bio: "Psychology major with strong research and analytical skills. Experienced in conducting surveys and analyzing behavioral data.",
-    image: "/placeholder.svg?height=64&width=64",
-  },
-]
+// Type definition for freelancer profile
+interface FreelancerProfile {
+  id: string
+  first_name: string
+  last_name: string
+  major: string
+  academic_year: string
+  bio: string
+  hourly_rate: number
+  avatar_url: string | null
+  skills: string[]
+  payment_methods: string[]
+  // Add other fields as needed
+}
 
-const majors = ["Computer Science", "Graphic Design", "Business", "Engineering", "Psychology", "Mathematics", "Biology", "Chemistry"]
-const paymentMethods = ["Zelle", "CashApp", "Paypal", "Venmo", "Apple Pay", "Google Pay", "Cash (Pay-in-person)"]
 
-// Extract all unique skills from freelancers for the filter
-const allSkills = Array.from(new Set(mockFreelancers.flatMap(f => f.skills))).sort()
+
+const paymentMethods = ["Zelle", "CashApp", "Paypal", "Venmo", "Apple Pay", "Bank Transfer","Check", "Cash","Stripe", "Cryptocurrency"]
 
 export default function BrowseFreelancersPage() {
-  const { user, profile, loading } = useAuth()
+  const authContext = useAuth()
+  const { user, profile, loading } = authContext || { user: null, profile: null, loading: true }
   const router = useRouter()
   const isMobile = useIsMobile()
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedMajors, setSelectedMajors] = useState<string[]>([])
   const [selectedSkills, setSelectedSkills] = useState<string[]>([])
   const [skillSearchTerm, setSkillSearchTerm] = useState("")
+  const [majorSearchTerm, setMajorSearchTerm] = useState("")
   const [selectedPaymentMethods, setSelectedPaymentMethods] = useState<string[]>([])
-  const [priceRange, setPriceRange] = useState([0, 100])
+  const [priceRange, setPriceRange] = useState<number[]>([0, 100])
   const [minPriceInput, setMinPriceInput] = useState("0")
   const [maxPriceInput, setMaxPriceInput] = useState("100")
   const [minRating, setMinRating] = useState(0)
   const [showFilters, setShowFilters] = useState(!isMobile)
+  
+  // New state for Supabase data
+  const [freelancers, setFreelancers] = useState<FreelancerProfile[]>([])
+  const [dataLoading, setDataLoading] = useState(true)
+  const [allSkills, setAllSkills] = useState<string[]>([])
+
+  // Fetch freelancer profiles from Supabase
+  useEffect(() => {
+    async function fetchFreelancers() {
+      try {
+        setDataLoading(true)
+        
+        // Fetch ALL user profiles with basic fields, including user_type
+        // Note: This should bypass RLS to show all public freelancer profiles
+        const { data, error } = await supabase
+          .from('user_profiles')
+          .select(`
+            id,
+            first_name,
+            last_name,
+            major,
+            academic_year,
+            bio,
+            hourly_rate,
+            avatar_url,
+            skills,
+            payment_methods,
+            user_type
+          `)
+          .in('user_type', ['freelancer', 'both'])
+          .not('first_name', 'is', null)
+          .not('last_name', 'is', null)
+          .order('created_at', { ascending: false })
+
+        if (error) {
+          console.error('Error fetching freelancers:', error)
+          console.error('Error details:', error.message, error.details, error.hint)
+          // Don't return early - try to continue with empty data
+        }
+
+        console.log('Raw data from Supabase:', data)
+        console.log('Data count:', data?.length || 0)
+        
+        // Log each profile to see what we're getting
+        if (data && data.length > 0) {
+          data.forEach((profile, index) => {
+            console.log(`Profile ${index + 1}:`, {
+              id: profile.id,
+              name: `${profile.first_name} ${profile.last_name}`,
+              user_type: profile.user_type,
+              skills: profile.skills,
+              hourly_rate: profile.hourly_rate
+            })
+          })
+        }
+
+        // Transform the data to match our interface
+        // Since we're already filtering by user_type at the DB level, we just need basic validation
+        const transformedData: FreelancerProfile[] = (data || [])
+          .filter(profile => {
+            // Basic validation - must have first_name and last_name (already filtered at DB level)
+            return profile && 
+                   profile.first_name && 
+                   profile.last_name
+          })
+          .map(profile => ({
+            id: profile.id || '',
+            first_name: profile.first_name || '',
+            last_name: profile.last_name || '',
+            major: profile.major || '',
+            academic_year: profile.academic_year || '',
+            bio: profile.bio || '',
+            hourly_rate: Number(profile.hourly_rate) || 0,
+            avatar_url: profile.avatar_url || null,
+            skills: Array.isArray(profile.skills) ? profile.skills.filter(Boolean) : [],
+            payment_methods: Array.isArray(profile.payment_methods) ? profile.payment_methods.filter(Boolean) : [],
+          }))
+
+        setFreelancers(transformedData)
+        console.log('Transformed freelancers:', transformedData)
+        console.log('Freelancers count after filtering:', transformedData.length)
+        
+        // Extract all unique skills from freelancers for the filter
+        const skillsSet = new Set<string>()
+        transformedData.forEach(freelancer => {
+          if (freelancer.skills && Array.isArray(freelancer.skills)) {
+            freelancer.skills.forEach(skill => {
+              if (skill && typeof skill === 'string' && skill.trim().length > 0) {
+                skillsSet.add(skill.trim())
+              }
+            })
+          }
+        })
+        setAllSkills(Array.from(skillsSet).sort())
+        
+      } catch (error) {
+        console.error('Error fetching freelancers:', error)
+        console.error('This might be due to RLS policies. Consider creating an API route for public data.')
+        // Set empty data on error
+        setFreelancers([])
+        setAllSkills([])
+      } finally {
+        setDataLoading(false)
+      }
+    }
+
+    fetchFreelancers()
+  }, [])
 
   // Redirect to sign-in if not authenticated
   useEffect(() => {
@@ -120,8 +176,110 @@ export default function BrowseFreelancersPage() {
     }
   }, [user, loading, router])
 
-  // Show loading state while checking authentication
-  if (loading) {
+  // Filter freelancers based on search term and filters
+  const filteredFreelancers = useMemo(() => {
+    console.log('Filtering freelancers, count:', freelancers?.length || 0)
+    
+    try {
+      if (!freelancers || !Array.isArray(freelancers) || freelancers.length === 0) {
+        console.log('No freelancers to filter')
+        return []
+      }
+
+      const filtered = freelancers.filter((freelancer) => {
+        if (!freelancer || typeof freelancer !== 'object') {
+          return false
+        }
+
+        // Create safe strings for comparison
+        const firstName = String(freelancer.first_name || '')
+        const lastName = String(freelancer.last_name || '')
+        const fullName = `${firstName} ${lastName}`.toLowerCase().trim()
+        const major = String(freelancer.major || '').toLowerCase()
+        const bio = String(freelancer.bio || '').toLowerCase()
+        const searchTermLower = String(searchTerm || '').toLowerCase()
+        
+        // Search match
+        const searchMatch = !searchTermLower || 
+          fullName.includes(searchTermLower) ||
+          major.includes(searchTermLower) ||
+          bio.includes(searchTermLower) ||
+          (Array.isArray(freelancer.skills) && freelancer.skills.some(skill => 
+            String(skill || '').toLowerCase().includes(searchTermLower)
+          ))
+
+        // Major filter
+        const majorMatch = !Array.isArray(selectedMajors) || selectedMajors.length === 0 || 
+          selectedMajors.includes(freelancer.major)
+
+        // Skills filter
+        const skillsMatch = !Array.isArray(selectedSkills) || selectedSkills.length === 0 || 
+          (Array.isArray(freelancer.skills) && selectedSkills.some(skill => 
+            freelancer.skills.includes(skill)
+          ))
+
+        // Payment method filter
+        const paymentMatch = !Array.isArray(selectedPaymentMethods) || selectedPaymentMethods.length === 0 || 
+          (Array.isArray(freelancer.payment_methods) && selectedPaymentMethods.some(method => 
+            freelancer.payment_methods.includes(method)
+          ))
+
+        // Price range filter
+        const hourlyRate = Number(freelancer.hourly_rate) || 0
+        const minPrice = Number(priceRange?.[0]) || 0
+        const maxPrice = Number(priceRange?.[1]) || 100
+        const priceMatch = hourlyRate >= minPrice && hourlyRate <= maxPrice
+
+        return searchMatch && majorMatch && skillsMatch && paymentMatch && priceMatch
+      })
+
+      console.log('Filtered freelancers count:', filtered.length)
+      return filtered
+    } catch (error) {
+      console.error('Error in filteredFreelancers useMemo:', error)
+      return []
+    }
+  }, [
+    searchTerm, 
+    selectedMajors, 
+    selectedSkills, 
+    selectedPaymentMethods, 
+    priceRange, 
+    freelancers
+  ])
+
+  // Filter skills based on search term
+  const filteredSkills = useMemo(() => {
+    try {
+      if (!allSkills || allSkills.length === 0) {
+        return []
+      }
+      return allSkills.filter(skill => 
+        skill && typeof skill === 'string' && skill.toLowerCase().includes(skillSearchTerm.toLowerCase())
+      )
+    } catch (error) {
+      console.error('Error filtering skills:', error)
+      return []
+    }
+  }, [skillSearchTerm, allSkills])
+  
+  // Filter majors based on search term
+  const filteredMajors = useMemo(() => {
+    try {
+      if (!majors || !Array.isArray(majors)) {
+        return []
+      }
+      return majors.filter(major =>
+        major && typeof major === 'string' && major.toLowerCase().includes(majorSearchTerm.toLowerCase())
+      )
+    } catch (error) {
+      console.error('Error filtering majors:', error)
+      return majors || []
+    }
+  }, [majorSearchTerm])
+
+  // Show loading state while checking authentication or data
+  if (loading || dataLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -136,37 +294,6 @@ export default function BrowseFreelancersPage() {
   if (!user) {
     return null
   }
-
-  // Filter freelancers based on search term and filters
-  const filteredFreelancers = useMemo(() => {
-    return mockFreelancers.filter(freelancer => {
-      // Search in name, major, skills, and bio
-      const searchMatch = searchTerm === "" || 
-        freelancer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        freelancer.major.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        freelancer.skills.some(skill => skill.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        freelancer.bio.toLowerCase().includes(searchTerm.toLowerCase())
-
-      // Major filter
-      const majorMatch = selectedMajors.length === 0 || selectedMajors.includes(freelancer.major)
-
-      // Skills filter
-      const skillsMatch = selectedSkills.length === 0 || 
-        selectedSkills.some(skill => freelancer.skills.includes(skill))
-
-      // Payment method filter
-      const paymentMatch = selectedPaymentMethods.length === 0 || 
-        selectedPaymentMethods.some(method => freelancer.paymentMethods.includes(method))
-
-      // Price range filter
-      const priceMatch = freelancer.hourlyRate >= priceRange[0] && freelancer.hourlyRate <= priceRange[1]
-
-      // Rating filter (easily removable)
-      const ratingMatch = freelancer.rating >= minRating
-
-      return searchMatch && majorMatch && skillsMatch && paymentMatch && priceMatch && ratingMatch
-    })
-  }, [searchTerm, selectedMajors, selectedSkills, selectedPaymentMethods, priceRange, minRating])
 
   const handleMajorToggle = (major: string) => {
     setSelectedMajors(prev => 
@@ -194,6 +321,7 @@ export default function BrowseFreelancersPage() {
 
   const clearAllFilters = () => {
     setSelectedMajors([])
+    setMajorSearchTerm("")
     setSelectedSkills([])
     setSelectedPaymentMethods([])
     setPriceRange([0, 100])
@@ -227,13 +355,6 @@ export default function BrowseFreelancersPage() {
     setMinPriceInput(values[0].toString())
     setMaxPriceInput(values[1].toString())
   }
-
-  // Filter skills based on search term
-  const filteredSkills = useMemo(() => {
-    return allSkills.filter(skill => 
-      skill.toLowerCase().includes(skillSearchTerm.toLowerCase())
-    )
-  }, [skillSearchTerm])
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -330,22 +451,34 @@ export default function BrowseFreelancersPage() {
                   {/* Major Filter */}
                   <div>
                     <h3 className="font-semibold mb-3">Major</h3>
-                    <div className="space-y-2">
-                      {majors.map((major) => (
-                        <div key={major} className="flex items-center space-x-2">
-                          <Checkbox
-                            id={`major-${major}`}
-                            checked={selectedMajors.includes(major)}
-                            onCheckedChange={() => handleMajorToggle(major)}
-                          />
-                          <label 
-                            htmlFor={`major-${major}`} 
-                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                          >
-                            {major}
-                          </label>
-                        </div>
-                      ))}
+                    <div className="space-y-3">
+                      <Input
+                        type="text"
+                        placeholder="Search majors..."
+                        value={majorSearchTerm}
+                        onChange={(e) => setMajorSearchTerm(e.target.value)}
+                        className="text-sm"
+                      />
+            <div className="max-h-48 overflow-y-auto space-y-2">
+              {filteredMajors.map((major) => (
+                <div key={major} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={`major-${major}`}
+                    checked={selectedMajors.includes(major)}
+                    onCheckedChange={() => handleMajorToggle(major)}
+                  />
+                  <label
+                    htmlFor={`major-${major}`}
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                  >
+                    {major}
+                  </label>
+                </div>
+              ))}
+              {filteredMajors.length === 0 && majorSearchTerm && (
+                <p className="text-sm text-gray-500 italic">No majors found</p>
+              )}
+            </div>
                     </div>
                   </div>
 
@@ -407,7 +540,7 @@ export default function BrowseFreelancersPage() {
 
                   {/* Price Range Filter */}
                   <div>
-                    <h3 className="font-semibold mb-3">Price</h3>
+                    <h3 className="font-semibold mb-3">Hourly Rate</h3>
                     <div className="space-y-4">
                       {/* Price Input Fields */}
                       <div className="flex items-center space-x-2">
@@ -524,21 +657,23 @@ export default function BrowseFreelancersPage() {
                   <CardHeader>
                     <div className="flex items-center space-x-4">
                       <Avatar className="w-16 h-16">
-                        <AvatarImage src={freelancer.image || "/placeholder.svg"} alt={freelancer.name} />
+                        <AvatarImage src={freelancer.avatar_url || "/placeholder.svg"} alt={`${freelancer.first_name} ${freelancer.last_name}`} />
                         <AvatarFallback>
-                          {freelancer.name.split(' ').map(n => n[0]).join('')}
+                          {(freelancer.first_name?.[0] || '?').toUpperCase()}{(freelancer.last_name?.[0] || '?').toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex-1">
-                        <CardTitle className="text-xl">{freelancer.name}</CardTitle>
+                        <CardTitle className="text-xl">{freelancer.first_name} {freelancer.last_name}</CardTitle>
                         <CardDescription>
-                          {freelancer.major} • {freelancer.year}
+                          {freelancer.major} • {freelancer.academic_year}
                         </CardDescription>
+                        {/* Commenting out rating until we add it to the database
                         <div className="flex items-center mt-1">
                           <Star className="h-4 w-4 fill-yellow-400 text-yellow-400 mr-1" />
                           <span className="text-sm font-medium">{freelancer.rating}</span>
                           <span className="text-sm text-gray-500 ml-1">({freelancer.reviews} reviews)</span>
                         </div>
+                        */}
                       </div>
                     </div>
                   </CardHeader>
@@ -568,18 +703,18 @@ export default function BrowseFreelancersPage() {
 
                     <div className="flex items-center justify-between">
                       <div>
-                        <span className="text-2xl font-bold text-green-600">${freelancer.hourlyRate}</span>
+                        <span className="text-2xl font-bold text-green-600">${freelancer.hourly_rate}</span>
                         <span className="text-gray-500 text-sm">/hour</span>
                       </div>
                       <div className="flex flex-wrap gap-1">
-                        {freelancer.paymentMethods.slice(0, 2).map((method) => (
+                        {freelancer.payment_methods.slice(0, 2).map((method) => (
                           <Badge key={method} variant="outline" className="text-xs">
                             {method}
                           </Badge>
                         ))}
-                        {freelancer.paymentMethods.length > 2 && (
+                        {freelancer.payment_methods.length > 2 && (
                           <Badge variant="outline" className="text-xs">
-                            +{freelancer.paymentMethods.length - 2}
+                            +{freelancer.payment_methods.length - 2}
                           </Badge>
                         )}
                       </div>
