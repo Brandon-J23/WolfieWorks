@@ -344,17 +344,29 @@ export default function ProfilePage() {
             <TabsContent value="portfolio">
               <Card>
                 <CardHeader>
-                  <CardTitle>Portfolio</CardTitle>
-                  <CardDescription>Showcase your best work and projects</CardDescription>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle>Portfolio</CardTitle>
+                      <CardDescription>Showcase your best work and projects</CardDescription>
+                    </div>
+                    <Button asChild className="bg-red-600 hover:bg-red-700">
+                      <Link href="/portfolio/upload">
+                        <Upload className="mr-2 h-4 w-4" />
+                        Upload Portfolio Item
+                      </Link>
+                    </Button>
+                  </div>
                 </CardHeader>
                 <CardContent>
                   <div className="text-center py-12">
                     <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                     <h3 className="text-lg font-semibold text-gray-900 mb-2">No portfolio items yet</h3>
                     <p className="text-gray-600 mb-4">Upload your best work to showcase your skills</p>
-                    <Button className="bg-red-600 hover:bg-red-700">
-                      <Upload className="mr-2 h-4 w-4" />
-                      Upload Portfolio Item
+                    <Button asChild className="bg-red-600 hover:bg-red-700">
+                      <Link href="/portfolio/upload">
+                        <Upload className="mr-2 h-4 w-4" />
+                        Upload Portfolio Item
+                      </Link>
                     </Button>
                   </div>
                 </CardContent>
