@@ -269,7 +269,7 @@ export default function PublicProfilePage() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-center">
-                    
+                    <p className="text-sm text-gray-600 mb-1">User Type:</p>
                     <p className={`text-xl font-semibold ${getUserTypeColor(profile.user_type)}`}>
                       {getUserTypeLabel(profile.user_type)}
                     </p>

@@ -721,7 +721,7 @@ export default function BrowseFreelancersPage() {
                     </div>
 
                     <div className="flex space-x-2">
-                      <Link href={`/profile/${freelancer.id}`} className="w-full">
+                      <Link href={`/public_profiles/${freelancer.id}`} className="w-full">
                         <Button className="w-full">View Profile</Button>
                       </Link>
                     </div>
