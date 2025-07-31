@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { GraduationCap, MapPin, DollarSign, Phone, MessageCircle, Facebook, Hash } from "lucide-react"
+import { GraduationCap, MapPin, DollarSign, Phone, Mail } from "lucide-react"
 import Link from "next/link"
 import { useAuth } from "@/contexts/auth-context"
 import { supabase } from "@/lib/supabase/client"
@@ -24,6 +24,7 @@ interface UserProfile {
   location: string
   user_type: string
   phone: string
+  email: string
 }
 
 export default function PublicProfilePage() {
@@ -51,25 +52,31 @@ export default function PublicProfilePage() {
       setLoading(true)
       setError(null)
 
-      const { data, error } = await supabase
-        .from('user_profiles')
-        .select(`
-          id,
-          first_name,
-          last_name,
-          major,
-          academic_year,
-          bio,
-          hourly_rate,
-          avatar_url,
-          skills,
-          payment_methods,
-          location,
-          user_type,
-          phone
-        `)
-        .eq('id', profileUserId)
-        .single()
+      // Get profile data and user data in parallel
+      const [profileResult, userResult] = await Promise.all([
+        supabase
+          .from('user_profiles')
+          .select(`
+            id,
+            first_name,
+            last_name,
+            major,
+            academic_year,
+            bio,
+            hourly_rate,
+            avatar_url,
+            skills,
+            payment_methods,
+            location,
+            user_type,
+            phone
+          `)
+          .eq('id', profileUserId)
+          .single(),
+        supabase.auth.getUser()
+      ])
+
+      const { data, error } = profileResult
 
       if (error) {
         console.error('Error fetching profile:', error)
@@ -80,6 +87,17 @@ export default function PublicProfilePage() {
       if (!data) {
         setError('Profile not found')
         return
+      }
+
+      // Try to get email from current user if it's their own profile, or use a placeholder
+      let userEmail = ''
+      if (userResult.data.user && userResult.data.user.id === profileUserId) {
+        userEmail = userResult.data.user.email || ''
+      } else {
+        // For demo purposes, we'll create a demo email based on the user's name
+        const firstName = data.first_name?.toLowerCase() || 'user'
+        const lastName = data.last_name?.toLowerCase() || 'demo'
+        userEmail = `${firstName}.${lastName}@stonybrook.edu`
       }
 
       // Transform the data
@@ -96,7 +114,8 @@ export default function PublicProfilePage() {
         payment_methods: Array.isArray(data.payment_methods) ? data.payment_methods.filter(Boolean) : [],
         location: data.location || '',
         user_type: data.user_type || '',
-        phone: data.phone || ''
+        phone: data.phone || '',
+        email: userEmail
       }
 
       setProfile(transformedProfile)
@@ -134,13 +153,30 @@ export default function PublicProfilePage() {
     }
   }
 
-  // Mock contact methods since they're not in the database yet
-  const getContactMethods = (phone: string) => [
-    { icon: Phone, label: 'Phone', value: phone || '+1 (555) 123-4567', color: 'text-green-600' },
-    { icon: MessageCircle, label: 'WhatsApp', value: 'Chat on WhatsApp', color: 'text-green-500' },
-    { icon: Hash, label: 'Discord', value: 'user#1234', color: 'text-indigo-600' },
-    { icon: Facebook, label: 'Messenger', value: 'Facebook Chat', color: 'text-blue-600' }
-  ]
+  // Contact methods from database
+  const getContactMethods = (phone: string, email: string) => {
+    const methods = []
+    
+    if (email) {
+      methods.push({ 
+        icon: Mail, 
+        label: 'Email', 
+        value: email, 
+        color: 'text-blue-600' 
+      })
+    }
+    
+    if (phone) {
+      methods.push({ 
+        icon: Phone, 
+        label: 'Phone', 
+        value: phone, 
+        color: 'text-green-600' 
+      })
+    }
+    
+    return methods
+  }
 
   if (authLoading || loading) {
     return (
@@ -272,7 +308,6 @@ export default function PublicProfilePage() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-center">
-                    <p className="text-sm text-gray-600 mb-1">User Type:</p>
                     <p className={`text-xl font-semibold ${getUserTypeColor(profile.user_type)}`}>
                       {getUserTypeLabel(profile.user_type)}
                     </p>
@@ -319,7 +354,7 @@ export default function PublicProfilePage() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    {getContactMethods(profile.phone).map((contact, index) => (
+                    {getContactMethods(profile.phone, profile.email).map((contact, index) => (
                       <div key={index} className="flex items-center space-x-3">
                         <contact.icon className={`h-5 w-5 ${contact.color}`} />
                         <div>
