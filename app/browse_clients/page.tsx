@@ -25,8 +25,8 @@ import { useIsMobile } from "@/hooks/use-mobile"
 import { majors } from "@/lib/majors"
 import { supabase } from "@/lib/supabase/client"
 
-// Type definition for freelancer profile
-interface FreelancerProfile {
+// Type definition for client profile
+interface ClientProfile {
   id: string
   first_name: string
   last_name: string
@@ -44,7 +44,7 @@ interface FreelancerProfile {
 
 const paymentMethods = ["Zelle", "CashApp", "Paypal", "Venmo", "Apple Pay", "Bank Transfer","Check", "Cash","Stripe", "Cryptocurrency"]
 
-export default function BrowseFreelancersPage() {
+export default function BrowseClientsPage() {
   const authContext = useAuth()
   const { user, profile, loading } = authContext || { user: null, profile: null, loading: true }
   const router = useRouter()
@@ -55,25 +55,22 @@ export default function BrowseFreelancersPage() {
   const [skillSearchTerm, setSkillSearchTerm] = useState("")
   const [majorSearchTerm, setMajorSearchTerm] = useState("")
   const [selectedPaymentMethods, setSelectedPaymentMethods] = useState<string[]>([])
-  const [priceRange, setPriceRange] = useState<number[]>([0, 100])
-  const [minPriceInput, setMinPriceInput] = useState("0")
-  const [maxPriceInput, setMaxPriceInput] = useState("100")
   const [minRating, setMinRating] = useState(0)
   const [showFilters, setShowFilters] = useState(!isMobile)
   
   // New state for Supabase data
-  const [freelancers, setFreelancers] = useState<FreelancerProfile[]>([])
+  const [clients, setClients] = useState<ClientProfile[]>([])
   const [dataLoading, setDataLoading] = useState(true)
   const [allSkills, setAllSkills] = useState<string[]>([])
 
-  // Fetch freelancer profiles from Supabase
+  // Fetch client profiles from Supabase
   useEffect(() => {
-    async function fetchFreelancers() {
+    async function fetchClients() {
       try {
         setDataLoading(true)
         
         // Fetch ALL user profiles with basic fields, including user_type
-        // Note: This should bypass RLS to show all public freelancer profiles
+        // Note: This should bypass RLS to show all public client profiles
         const { data, error } = await supabase
           .from('user_profiles')
           .select(`
@@ -89,13 +86,13 @@ export default function BrowseFreelancersPage() {
             payment_methods,
             user_type
           `)
-          .in('user_type', ['freelancer', 'both'])
+          .in('user_type', ['client', 'both'])
           .not('first_name', 'is', null)
           .not('last_name', 'is', null)
           .order('created_at', { ascending: false })
 
         if (error) {
-          console.error('Error fetching freelancers:', error)
+          console.error('Error fetching clients:', error)
           console.error('Error details:', error.message, error.details, error.hint)
           // Don't return early - try to continue with empty data
         }
@@ -118,7 +115,7 @@ export default function BrowseFreelancersPage() {
 
         // Transform the data to match our interface
         // Since we're already filtering by user_type at the DB level, we just need basic validation
-        const transformedData: FreelancerProfile[] = (data || [])
+        const transformedData: ClientProfile[] = (data || [])
           .filter(profile => {
             // Basic validation - must have first_name and last_name (already filtered at DB level)
             return profile && 
@@ -138,15 +135,15 @@ export default function BrowseFreelancersPage() {
             payment_methods: Array.isArray(profile.payment_methods) ? profile.payment_methods.filter(Boolean) : [],
           }))
 
-        setFreelancers(transformedData)
-        console.log('Transformed freelancers:', transformedData)
-        console.log('Freelancers count after filtering:', transformedData.length)
+        setClients(transformedData)
+        console.log('Transformed clients:', transformedData)
+        console.log('Clients count after filtering:', transformedData.length)
         
-        // Extract all unique skills from freelancers for the filter
+        // Extract all unique skills from clients for the filter
         const skillsSet = new Set<string>()
-        transformedData.forEach(freelancer => {
-          if (freelancer.skills && Array.isArray(freelancer.skills)) {
-            freelancer.skills.forEach(skill => {
+        transformedData.forEach(client => {
+          if (client.skills && Array.isArray(client.skills)) {
+            client.skills.forEach(skill => {
               if (skill && typeof skill === 'string' && skill.trim().length > 0) {
                 skillsSet.add(skill.trim())
               }
@@ -156,17 +153,17 @@ export default function BrowseFreelancersPage() {
         setAllSkills(Array.from(skillsSet).sort())
         
       } catch (error) {
-        console.error('Error fetching freelancers:', error)
+        console.error('Error fetching clients:', error)
         console.error('This might be due to RLS policies. Consider creating an API route for public data.')
         // Set empty data on error
-        setFreelancers([])
+        setClients([])
         setAllSkills([])
       } finally {
         setDataLoading(false)
       }
     }
 
-    fetchFreelancers()
+    fetchClients()
   }, [])
 
   // Redirect to sign-in if not authenticated
@@ -176,27 +173,27 @@ export default function BrowseFreelancersPage() {
     }
   }, [user, loading, router])
 
-  // Filter freelancers based on search term and filters
-  const filteredFreelancers = useMemo(() => {
-    console.log('Filtering freelancers, count:', freelancers?.length || 0)
+  // Filter clients based on search term and filters
+  const filteredClients = useMemo(() => {
+    console.log('Filtering clients, count:', clients?.length || 0)
     
     try {
-      if (!freelancers || !Array.isArray(freelancers) || freelancers.length === 0) {
-        console.log('No freelancers to filter')
+      if (!clients || !Array.isArray(clients) || clients.length === 0) {
+        console.log('No clients to filter')
         return []
       }
 
-      const filtered = freelancers.filter((freelancer) => {
-        if (!freelancer || typeof freelancer !== 'object') {
+      const filtered = clients.filter((client) => {
+        if (!client || typeof client !== 'object') {
           return false
         }
 
         // Create safe strings for comparison
-        const firstName = String(freelancer.first_name || '')
-        const lastName = String(freelancer.last_name || '')
+        const firstName = String(client.first_name || '')
+        const lastName = String(client.last_name || '')
         const fullName = `${firstName} ${lastName}`.toLowerCase().trim()
-        const major = String(freelancer.major || '').toLowerCase()
-        const bio = String(freelancer.bio || '').toLowerCase()
+        const major = String(client.major || '').toLowerCase()
+        const bio = String(client.bio || '').toLowerCase()
         const searchTermLower = String(searchTerm || '').toLowerCase()
         
         // Search match
@@ -204,39 +201,33 @@ export default function BrowseFreelancersPage() {
           fullName.includes(searchTermLower) ||
           major.includes(searchTermLower) ||
           bio.includes(searchTermLower) ||
-          (Array.isArray(freelancer.skills) && freelancer.skills.some(skill => 
+          (Array.isArray(client.skills) && client.skills.some(skill => 
             String(skill || '').toLowerCase().includes(searchTermLower)
           ))
 
         // Major filter
         const majorMatch = !Array.isArray(selectedMajors) || selectedMajors.length === 0 || 
-          selectedMajors.includes(freelancer.major)
+          selectedMajors.includes(client.major)
 
         // Skills filter
         const skillsMatch = !Array.isArray(selectedSkills) || selectedSkills.length === 0 || 
-          (Array.isArray(freelancer.skills) && selectedSkills.some(skill => 
-            freelancer.skills.includes(skill)
+          (Array.isArray(client.skills) && selectedSkills.some(skill => 
+            client.skills.includes(skill)
           ))
 
         // Payment method filter
         const paymentMatch = !Array.isArray(selectedPaymentMethods) || selectedPaymentMethods.length === 0 || 
-          (Array.isArray(freelancer.payment_methods) && selectedPaymentMethods.some(method => 
-            freelancer.payment_methods.includes(method)
+          (Array.isArray(client.payment_methods) && selectedPaymentMethods.some(method => 
+            client.payment_methods.includes(method)
           ))
 
-        // Price range filter
-        const hourlyRate = Number(freelancer.hourly_rate) || 0
-        const minPrice = Number(priceRange?.[0]) || 0
-        const maxPrice = Number(priceRange?.[1]) || 100
-        const priceMatch = hourlyRate >= minPrice && hourlyRate <= maxPrice
-
-        return searchMatch && majorMatch && skillsMatch && paymentMatch && priceMatch
+        return searchMatch && majorMatch && skillsMatch && paymentMatch
       })
 
-      console.log('Filtered freelancers count:', filtered.length)
+      console.log('Filtered clients count:', filtered.length)
       return filtered
     } catch (error) {
-      console.error('Error in filteredFreelancers useMemo:', error)
+      console.error('Error in filteredClients useMemo:', error)
       return []
     }
   }, [
@@ -244,8 +235,7 @@ export default function BrowseFreelancersPage() {
     selectedMajors, 
     selectedSkills, 
     selectedPaymentMethods, 
-    priceRange, 
-    freelancers
+    clients
   ])
 
   // Filter skills based on search term
@@ -324,36 +314,9 @@ export default function BrowseFreelancersPage() {
     setMajorSearchTerm("")
     setSelectedSkills([])
     setSelectedPaymentMethods([])
-    setPriceRange([0, 100])
-    setMinPriceInput("0")
-    setMaxPriceInput("100")
     setMinRating(0)
     setSearchTerm("")
     setSkillSearchTerm("")
-  }
-
-  // Handle price input changes
-  const handleMinPriceChange = (value: string) => {
-    setMinPriceInput(value)
-    const numValue = parseInt(value) || 0
-    if (numValue <= priceRange[1]) {
-      setPriceRange([numValue, priceRange[1]])
-    }
-  }
-
-  const handleMaxPriceChange = (value: string) => {
-    setMaxPriceInput(value)
-    const numValue = parseInt(value) || 100
-    if (numValue >= priceRange[0]) {
-      setPriceRange([priceRange[0], numValue])
-    }
-  }
-
-  // Sync price inputs when slider changes
-  const handlePriceRangeChange = (values: number[]) => {
-    setPriceRange(values)
-    setMinPriceInput(values[0].toString())
-    setMaxPriceInput(values[1].toString())
   }
 
   return (
@@ -367,8 +330,11 @@ export default function BrowseFreelancersPage() {
               <h1 className="text-2xl font-bold">WolfieWorks</h1>
             </Link>
             <nav className="hidden md:flex items-center space-x-6">
-              <Link href="/browse" className="hover:text-red-200 transition-colors font-semibold">
+              <Link href="/browse_freelancers" className="hover:text-red-200 transition-colors">
                 Browse Freelancers
+              </Link>
+              <Link href="/browse_clients" className="hover:text-red-200 transition-colors font-semibold">
+                Browse Clients
               </Link>
               <Link href="/jobs" className="hover:text-red-200 transition-colors">
                 Find Jobs
@@ -392,13 +358,13 @@ export default function BrowseFreelancersPage() {
             Home
           </Link>
           <span className="text-gray-400">/</span>
-          <span className="text-gray-900 font-semibold">Browse Freelancers</span>
+          <span className="text-gray-900 font-semibold">Browse Clients</span>
         </div>
 
         {/* Page Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Browse Freelancers</h1>
-          <p className="text-gray-600">Find talented Stony Brook students for your project</p>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Browse Clients</h1>
+          <p className="text-gray-600">Find clients looking for talented Stony Brook students</p>
         </div>
 
         {/* Search Bar */}
@@ -538,80 +504,6 @@ export default function BrowseFreelancersPage() {
                     </div>
                   </div>
 
-                  {/* Price Range Filter */}
-                  <div>
-                    <h3 className="font-semibold mb-3">Hourly Rate</h3>
-                    <div className="space-y-4">
-                      {/* Price Input Fields */}
-                      <div className="flex items-center space-x-2">
-                        <div className="flex-1">
-                          <label htmlFor="min-price" className="text-xs text-gray-600 mb-1 block">Min</label>
-                          <div className="relative">
-                            <span className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">$</span>
-                            <Input
-                              id="min-price"
-                              type="number"
-                              value={minPriceInput}
-                              onChange={(e) => handleMinPriceChange(e.target.value)}
-                              className="pl-6 text-sm"
-                              min="0"
-                              max="1000"
-                            />
-                          </div>
-                        </div>
-                        <span className="text-gray-400 mt-6">-</span>
-                        <div className="flex-1">
-                          <label htmlFor="max-price" className="text-xs text-gray-600 mb-1 block">Max</label>
-                          <div className="relative">
-                            <span className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">$</span>
-                            <Input
-                              id="max-price"
-                              type="number"
-                              value={maxPriceInput}
-                              onChange={(e) => handleMaxPriceChange(e.target.value)}
-                              className="pl-6 text-sm"
-                              min="0"
-                              max="1000"
-                            />
-                          </div>
-                        </div>
-                      </div>
-                      
-                      {/* Slider with improved styling */}
-                      <div className="px-2">
-                        <Slider
-                          value={priceRange}
-                          onValueChange={handlePriceRangeChange}
-                          max={100}
-                          min={0}
-                          step={5}
-                          className="w-full"
-                        />
-                        <div className="flex justify-between text-xs text-gray-500 mt-1">
-                          <span>$0</span>
-                          <span>$100+</span>
-                        </div>
-                      </div>
-
-                      {/* Go Button */}
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="w-16 h-8 text-xs"
-                        onClick={() => {
-                          // Force update the price range based on current inputs
-                          const minVal = parseInt(minPriceInput) || 0
-                          const maxVal = parseInt(maxPriceInput) || 100
-                          if (minVal <= maxVal) {
-                            setPriceRange([minVal, maxVal])
-                          }
-                        }}
-                      >
-                        Go
-                      </Button>
-                    </div>
-                  </div>
-
                   {/* Rating Filter - Easily removable section */}
                   <div>
                     <h3 className="font-semibold mb-3">Minimum Rating</h3>
@@ -647,31 +539,31 @@ export default function BrowseFreelancersPage() {
           <div className="lg:col-span-3">
             <div className="mb-4 flex items-center justify-between">
               <p className="text-gray-600">
-                {filteredFreelancers.length} freelancer{filteredFreelancers.length !== 1 ? 's' : ''} found
+                {filteredClients.length} client{filteredClients.length !== 1 ? 's' : ''} found
               </p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {filteredFreelancers.map((freelancer) => (
-                <Card key={freelancer.id} className="hover:shadow-lg transition-shadow">
+              {filteredClients.map((client) => (
+                <Card key={client.id} className="hover:shadow-lg transition-shadow">
                   <CardHeader>
                     <div className="flex items-center space-x-4">
                       <Avatar className="w-16 h-16">
-                        <AvatarImage src={freelancer.avatar_url || "/placeholder.svg"} alt={`${freelancer.first_name} ${freelancer.last_name}`} />
+                        <AvatarImage src={client.avatar_url || "/placeholder.svg"} alt={`${client.first_name} ${client.last_name}`} />
                         <AvatarFallback>
-                          {(freelancer.first_name?.[0] || '?').toUpperCase()}{(freelancer.last_name?.[0] || '?').toUpperCase()}
+                          {(client.first_name?.[0] || '?').toUpperCase()}{(client.last_name?.[0] || '?').toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex-1">
-                        <CardTitle className="text-xl">{freelancer.first_name} {freelancer.last_name}</CardTitle>
+                        <CardTitle className="text-xl">{client.first_name} {client.last_name}</CardTitle>
                         <CardDescription>
-                          {freelancer.major} • {freelancer.academic_year}
+                          {client.major} • {client.academic_year}
                         </CardDescription>
                         {/* Commenting out rating until we add it to the database
                         <div className="flex items-center mt-1">
                           <Star className="h-4 w-4 fill-yellow-400 text-yellow-400 mr-1" />
-                          <span className="text-sm font-medium">{freelancer.rating}</span>
-                          <span className="text-sm text-gray-500 ml-1">({freelancer.reviews} reviews)</span>
+                          <span className="text-sm font-medium">{client.rating}</span>
+                          <span className="text-sm text-gray-500 ml-1">({client.reviews} reviews)</span>
                         </div>
                         */}
                       </div>
@@ -683,19 +575,19 @@ export default function BrowseFreelancersPage() {
                       WebkitLineClamp: 2, 
                       WebkitBoxOrient: 'vertical' 
                     }}>
-                      {freelancer.bio}
+                      {client.bio}
                     </p>
                     
                     <div>
                       <div className="flex flex-wrap gap-1 mb-2">
-                        {freelancer.skills.slice(0, 3).map((skill) => (
+                        {client.skills.slice(0, 3).map((skill) => (
                           <Badge key={skill} variant="secondary" className="text-xs">
                             {skill}
                           </Badge>
                         ))}
-                        {freelancer.skills.length > 3 && (
+                        {client.skills.length > 3 && (
                           <Badge variant="outline" className="text-xs">
-                            +{freelancer.skills.length - 3} more
+                            +{client.skills.length - 3} more
                           </Badge>
                         )}
                       </div>
@@ -703,25 +595,25 @@ export default function BrowseFreelancersPage() {
 
                     <div className="flex items-center justify-between">
                       <div>
-                        <span className="text-2xl font-bold text-green-600">${freelancer.hourly_rate}</span>
+                        <span className="text-2xl font-bold text-green-600">${client.hourly_rate}</span>
                         <span className="text-gray-500 text-sm">/hour</span>
                       </div>
                       <div className="flex flex-wrap gap-1">
-                        {freelancer.payment_methods.slice(0, 2).map((method) => (
+                        {client.payment_methods.slice(0, 2).map((method) => (
                           <Badge key={method} variant="outline" className="text-xs">
                             {method}
                           </Badge>
                         ))}
-                        {freelancer.payment_methods.length > 2 && (
+                        {client.payment_methods.length > 2 && (
                           <Badge variant="outline" className="text-xs">
-                            +{freelancer.payment_methods.length - 2}
+                            +{client.payment_methods.length - 2}
                           </Badge>
                         )}
                       </div>
                     </div>
 
                     <div className="flex space-x-2">
-                      <Link href={`/public_profiles/${freelancer.id}`} className="w-full">
+                      <Link href={`/public_profiles/${client.id}`} className="w-full">
                         <Button className="w-full">View Profile</Button>
                       </Link>
                     </div>
@@ -730,9 +622,9 @@ export default function BrowseFreelancersPage() {
               ))}
             </div>
 
-            {filteredFreelancers.length === 0 && (
+            {filteredClients.length === 0 && (
               <div className="text-center py-12">
-                <p className="text-gray-500 text-lg mb-4">No freelancers found matching your criteria</p>
+                <p className="text-gray-500 text-lg mb-4">No clients found matching your criteria</p>
                 <Button onClick={clearAllFilters} variant="outline">
                   Clear Filters
                 </Button>

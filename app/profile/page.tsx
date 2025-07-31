@@ -169,8 +169,11 @@ export default function ProfilePage() {
               <h1 className="text-2xl font-bold">WolfieWorks</h1>
             </Link>
             <nav className="hidden md:flex items-center space-x-6">
-              <Link href="/browse" className="hover:text-red-200 transition-colors">
+              <Link href="/browse_freelancers" className="hover:text-red-200 transition-colors">
                 Browse Freelancers
+              </Link>
+              <Link href="/browse_clients" className="hover:text-red-200 transition-colors">
+                Browse Clients
               </Link>
               <Link href="/jobs" className="hover:text-red-200 transition-colors">
                 Find Jobs

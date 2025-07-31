@@ -159,7 +159,7 @@ export default function PublicProfilePage() {
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Profile Not Found</h1>
           <p className="text-gray-600 mb-4">{error}</p>
-          <Link href="/browse" className="text-red-600 hover:text-red-700">
+          <Link href="/browse_freelancers" className="text-red-600 hover:text-red-700">
             ← Back to Browse
           </Link>
         </div>
@@ -182,8 +182,11 @@ export default function PublicProfilePage() {
               <h1 className="text-2xl font-bold">WolfieWorks</h1>
             </Link>
             <nav className="hidden md:flex items-center space-x-6">
-              <Link href="/browse" className="hover:text-red-200 transition-colors">
+              <Link href="/browse_freelancers" className="hover:text-red-200 transition-colors">
                 Browse Freelancers
+              </Link>
+              <Link href="/browse_clients" className="hover:text-red-200 transition-colors">
+                Browse Clients
               </Link>
               <Link href="/jobs" className="hover:text-red-200 transition-colors">
                 Find Jobs
