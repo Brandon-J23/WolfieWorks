@@ -341,7 +341,7 @@ export default function PublicProfilePage() {
                 <CardContent>
                   {portfolioItems.length === 0 ? (
                     <div className="text-center text-gray-500 py-8">
-                      <p>User has not uploaded any portfolio item.</p>
+                      <p>{profile.first_name} has not uploaded any portfolio item.</p>
                     </div>
                   ) : (
                     <div className="relative">
