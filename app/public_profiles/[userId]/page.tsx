@@ -5,10 +5,12 @@ import { useParams, useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { GraduationCap, MapPin, DollarSign, Phone, Mail } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { GraduationCap, MapPin, DollarSign, Phone, Mail, ChevronLeft, ChevronRight, ExternalLink } from "lucide-react"
 import Link from "next/link"
 import { useAuth } from "@/contexts/auth-context"
 import { supabase } from "@/lib/supabase/client"
+import { getPortfolioItems, type PortfolioItem } from "@/app/actions/portfolio-actions"
 
 interface UserProfile {
   id: string
@@ -32,6 +34,8 @@ export default function PublicProfilePage() {
   const router = useRouter()
   const { user: currentUser, loading: authLoading } = useAuth()
   const [profile, setProfile] = useState<UserProfile | null>(null)
+  const [portfolioItems, setPortfolioItems] = useState<PortfolioItem[]>([])
+  const [currentPortfolioIndex, setCurrentPortfolioIndex] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -44,6 +48,7 @@ export default function PublicProfilePage() {
 
     if (userId && currentUser) {
       fetchUserProfile(userId as string)
+      fetchPortfolioItems(userId as string)
     }
   }, [userId, currentUser, authLoading, router])
 
@@ -124,6 +129,36 @@ export default function PublicProfilePage() {
       setError('Failed to load profile')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchPortfolioItems = async (profileUserId: string) => {
+    try {
+      const result = await getPortfolioItems(profileUserId)
+      if (result.success) {
+        setPortfolioItems(result.data)
+        setCurrentPortfolioIndex(0)
+      } else {
+        console.error('Error fetching portfolio items:', result.error)
+      }
+    } catch (error) {
+      console.error('Error fetching portfolio items:', error)
+    }
+  }
+
+  const nextPortfolioItem = () => {
+    if (portfolioItems.length > 1) {
+      setCurrentPortfolioIndex((prev) => 
+        prev + 1 >= portfolioItems.length ? 0 : prev + 1
+      )
+    }
+  }
+
+  const previousPortfolioItem = () => {
+    if (portfolioItems.length > 1) {
+      setCurrentPortfolioIndex((prev) => 
+        prev - 1 < 0 ? portfolioItems.length - 1 : prev - 1
+      )
     }
   }
 
@@ -295,6 +330,117 @@ export default function PublicProfilePage() {
                       )}
                     </div>
                   </div>
+                </CardContent>
+              </Card>
+
+              {/* Portfolio Section */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg">Portfolio</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {portfolioItems.length === 0 ? (
+                    <div className="text-center text-gray-500 py-8">
+                      <p>User has not uploaded any portfolio item.</p>
+                    </div>
+                  ) : (
+                    <div className="relative">
+                      {/* Portfolio Navigation */}
+                      {portfolioItems.length > 1 && (
+                        <>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={previousPortfolioItem}
+                            className="absolute left-0 top-1/2 transform -translate-y-1/2 z-10 bg-white/80 hover:bg-white shadow-sm"
+                          >
+                            <ChevronLeft className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={nextPortfolioItem}
+                            className="absolute right-0 top-1/2 transform -translate-y-1/2 z-10 bg-white/80 hover:bg-white shadow-sm"
+                          >
+                            <ChevronRight className="h-4 w-4" />
+                          </Button>
+                        </>
+                      )}
+
+                      {/* Current Portfolio Item */}
+                      <div className="px-8">
+                        <div className="space-y-4">
+                          {/* Portfolio Image */}
+                          {portfolioItems[currentPortfolioIndex].file_url && (
+                            <div className="relative">
+                              <img
+                                src={portfolioItems[currentPortfolioIndex].file_url}
+                                alt={portfolioItems[currentPortfolioIndex].title}
+                                className="w-full h-48 object-cover rounded-lg"
+                              />
+                              {portfolioItems[currentPortfolioIndex].featured && (
+                                <Badge className="absolute top-2 left-2 bg-yellow-500 text-white">
+                                  Featured
+                                </Badge>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Portfolio Info */}
+                          <div>
+                            <div className="flex items-center justify-between mb-2">
+                              <h3 className="text-xl font-semibold text-gray-900">
+                                {portfolioItems[currentPortfolioIndex].title}
+                              </h3>
+                              {portfolioItems[currentPortfolioIndex].project_url && (
+                                <Button variant="outline" size="sm" asChild>
+                                  <a
+                                    href={portfolioItems[currentPortfolioIndex].project_url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                  >
+                                    <ExternalLink className="h-4 w-4 mr-2" />
+                                    View Project
+                                  </a>
+                                </Button>
+                              )}
+                            </div>
+                            
+                            <Badge variant="secondary" className="mb-3">
+                              {portfolioItems[currentPortfolioIndex].category.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                            </Badge>
+
+                            <p className="text-gray-700 mb-4">
+                              {portfolioItems[currentPortfolioIndex].description}
+                            </p>
+
+                            {/* Portfolio Tags */}
+                            {portfolioItems[currentPortfolioIndex].tags.length > 0 && (
+                              <div>
+                                <p className="text-sm font-medium text-gray-700 mb-2">Technologies Used:</p>
+                                <div className="flex flex-wrap gap-2">
+                                  {portfolioItems[currentPortfolioIndex].tags.map((tag) => (
+                                    <Badge key={tag} variant="outline" className="text-xs">
+                                      {tag}
+                                    </Badge>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Portfolio Item Counter */}
+                        {portfolioItems.length > 1 && (
+                          <div className="text-center mt-4">
+                            <p className="text-sm text-gray-500">
+                              {currentPortfolioIndex + 1} of {portfolioItems.length}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </div>
