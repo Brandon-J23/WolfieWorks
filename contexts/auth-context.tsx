@@ -7,7 +7,6 @@ import { supabase } from "@/lib/supabase/client"
 
 interface UserProfile {
   id: string
-  user_id: string
   first_name?: string
   last_name?: string
   phone?: string
@@ -19,6 +18,7 @@ interface UserProfile {
   location?: string
   user_type?: string
   payment_methods?: string[]
+  avatar_url?: string // Add this line
   created_at: string
   updated_at: string
 }
@@ -75,7 +75,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const fetchProfile = async (userId: string) => {
     try {
-      const { data, error } = await supabase.from("user_profiles").select("*").eq("user_id", userId).single()
+      const { data, error } = await supabase.from("user_profiles").select("*").eq("id", userId).single()
 
       if (error && error.code !== "PGRST116") {
         console.error("Error fetching profile:", error)
@@ -93,11 +93,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     try {
       // First, try to update existing profile
-      const { data: existingProfile, error: fetchError } = await supabase
-        .from("user_profiles")
-        .select("id")
-        .eq("user_id", user.id)
-        .single()
+      const { data: existingProfile } = await supabase.from("user_profiles").select("id").eq("id", user.id).single()
 
       if (existingProfile) {
         // Update existing profile
@@ -107,7 +103,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             ...data,
             updated_at: new Date().toISOString(),
           })
-          .eq("user_id", user.id)
+          .eq("id", user.id)
           .select()
           .single()
 
@@ -118,7 +114,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const { data: newProfile, error: insertError } = await supabase
           .from("user_profiles")
           .insert({
-            user_id: user.id,
+            id: user.id,
             ...data,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
@@ -144,6 +140,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           location: data.location,
           user_type: data.user_type,
           payment_methods: data.payment_methods,
+          avatar_url: data.avatar_url, // Add this line
         },
       })
 

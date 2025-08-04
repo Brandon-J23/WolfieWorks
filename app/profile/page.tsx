@@ -1,5 +1,7 @@
 "use client"
 
+import type React from "react"
+
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -16,6 +18,7 @@ import { GraduationCap, Star, Upload, Edit, Save, X, Heart, DollarSign, Clock, P
 import Link from "next/link"
 import { useAuth } from "@/contexts/auth-context"
 import { toast } from "@/hooks/use-toast"
+import { supabase } from "@/supabase"
 
 const AVAILABLE_SKILLS = [
   "JavaScript",
@@ -89,6 +92,8 @@ export default function ProfilePage() {
   const [isSaving, setIsSaving] = useState(false)
   const [hourlyRateError, setHourlyRateError] = useState("")
   const [newSkill, setNewSkill] = useState("")
+  const [isUploadingImage, setIsUploadingImage] = useState(false)
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [profileData, setProfileData] = useState({
     firstName: "",
     lastName: "",
@@ -102,6 +107,7 @@ export default function ProfilePage() {
     location: "",
     userType: "",
     paymentMethods: [] as string[],
+    avatarUrl: "",
   })
 
   // Mock data for ratings
@@ -195,9 +201,76 @@ export default function ProfilePage() {
         location: sourceData?.location || "",
         userType: sourceData?.user_type || "",
         paymentMethods: sourceData?.payment_methods || [],
+        avatarUrl: sourceData?.avatar_url || "",
       })
     }
   }, [user, profile, loading, router])
+
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file || !user) return
+
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      toast({
+        title: "Invalid file type",
+        description: "Please select an image file.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    // Validate file size (5MB limit)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: "File too large",
+        description: "Please select an image smaller than 5MB.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setIsUploadingImage(true)
+
+    try {
+      // Create a unique filename
+      const fileExt = file.name.split(".").pop()
+      const fileName = `${user.id}-${Date.now()}.${fileExt}`
+      const filePath = `avatars/${fileName}`
+
+      // Upload to Supabase storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from("user-uploads")
+        .upload(filePath, file)
+
+      if (uploadError) {
+        throw uploadError
+      }
+
+      // Get public URL
+      const { data: urlData } = supabase.storage.from("user-uploads").getPublicUrl(filePath)
+
+      const avatarUrl = urlData.publicUrl
+
+      // Update profile data
+      setProfileData((prev) => ({ ...prev, avatarUrl }))
+      setImagePreview(avatarUrl)
+
+      toast({
+        title: "Image uploaded",
+        description: "Your profile picture has been updated. Don't forget to save your changes.",
+      })
+    } catch (error) {
+      console.error("Error uploading image:", error)
+      toast({
+        title: "Upload failed",
+        description: "Failed to upload image. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsUploadingImage(false)
+    }
+  }
 
   const handleInputChange = (field: string, value: string) => {
     if (field === "hourlyRate") {
@@ -272,6 +345,7 @@ export default function ProfilePage() {
         location: profileData.location,
         user_type: profileData.userType,
         payment_methods: profileData.paymentMethods,
+        avatar_url: profileData.avatarUrl,
       }
 
       // Update the profile in the database
@@ -346,13 +420,40 @@ export default function ProfilePage() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-4">
-                  <Avatar className="h-20 w-20">
-                    <AvatarImage src={user.user_metadata?.avatar_url || "/placeholder.svg"} />
-                    <AvatarFallback className="text-2xl">
-                      {profileData.firstName[0]}
-                      {profileData.lastName[0]}
-                    </AvatarFallback>
-                  </Avatar>
+                  <div className="relative">
+                    <Avatar className="h-20 w-20">
+                      <AvatarImage
+                        src={
+                          imagePreview || profileData.avatarUrl || user.user_metadata?.avatar_url || "/placeholder.svg"
+                        }
+                      />
+                      <AvatarFallback className="text-2xl">
+                        {profileData.firstName[0]}
+                        {profileData.lastName[0]}
+                      </AvatarFallback>
+                    </Avatar>
+                    {isEditing && (
+                      <div className="absolute -bottom-2 -right-2">
+                        <label htmlFor="avatar-upload" className="cursor-pointer">
+                          <div className="bg-red-600 hover:bg-red-700 text-white rounded-full p-2 shadow-lg transition-colors">
+                            {isUploadingImage ? (
+                              <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
+                            ) : (
+                              <Upload className="h-4 w-4" />
+                            )}
+                          </div>
+                        </label>
+                        <input
+                          id="avatar-upload"
+                          type="file"
+                          accept="image/*"
+                          onChange={handleImageUpload}
+                          className="hidden"
+                          disabled={isUploadingImage}
+                        />
+                      </div>
+                    )}
+                  </div>
                   <div>
                     <h1 className="text-3xl font-bold text-gray-900">
                       {profileData.firstName} {profileData.lastName}
@@ -666,6 +767,7 @@ export default function ProfilePage() {
                           setIsEditing(false)
                           setHourlyRateError("")
                           setNewSkill("")
+                          setImagePreview(null)
                         }}
                         disabled={isSaving}
                       >
