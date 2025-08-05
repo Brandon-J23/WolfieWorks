@@ -11,10 +11,11 @@ import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { GraduationCap, Star, Upload, Edit, Save, X, Heart, DollarSign, Clock } from "lucide-react"
+import { GraduationCap, Star, Upload, Edit, Save, X, Heart, DollarSign, Clock, ChevronLeft, ChevronRight, ExternalLink } from "lucide-react"
 import Link from "next/link"
 import { useAuth } from "@/contexts/auth-context"
 import { majors } from "@/lib/majors"
+import { getPortfolioItems, type PortfolioItem } from "@/app/actions/portfolio-actions"
 
 export default function ProfilePage() {
   const { user, loading } = useAuth()
@@ -37,6 +38,9 @@ export default function ProfilePage() {
     hourlyRate: "",
     location: "",
   })
+
+  const [portfolioItems, setPortfolioItems] = useState<PortfolioItem[]>([])
+  const [currentPortfolioIndex, setCurrentPortfolioIndex] = useState(0)
 
   // Mock data for ratings
   const ratings = [
@@ -125,8 +129,39 @@ export default function ProfilePage() {
         hourlyRate: user.user_metadata?.hourly_rate || "",
         location: user.user_metadata?.location || "",
       })
+      fetchPortfolioItems(user.id)
     }
   }, [user, loading, router])
+
+  const fetchPortfolioItems = async (userId: string) => {
+    try {
+      const result = await getPortfolioItems(userId)
+      if (result.success) {
+        setPortfolioItems(result.data)
+        setCurrentPortfolioIndex(0)
+      } else {
+        console.error('Error fetching portfolio items:', result.error)
+      }
+    } catch (error) {
+      console.error('Error fetching portfolio items:', error)
+    }
+  }
+
+  const nextPortfolioItem = () => {
+    if (portfolioItems.length > 1) {
+      setCurrentPortfolioIndex((prev) => 
+        prev + 1 >= portfolioItems.length ? 0 : prev + 1
+      )
+    }
+  }
+
+  const previousPortfolioItem = () => {
+    if (portfolioItems.length > 1) {
+      setCurrentPortfolioIndex((prev) => 
+        prev - 1 < 0 ? portfolioItems.length - 1 : prev - 1
+      )
+    }
+  }
 
   const handleInputChange = (field: string, value: string) => {
     setProfileData((prev) => ({ ...prev, [field]: value }))
@@ -359,23 +394,141 @@ export default function ProfilePage() {
 
             {/* Portfolio Tab */}
             <TabsContent value="portfolio">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Portfolio</CardTitle>
-                  <CardDescription>Showcase your best work and projects</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-center py-12">
-                    <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">No portfolio items yet</h3>
-                    <p className="text-gray-600 mb-4">Upload your best work to showcase your skills</p>
-                    <Button className="bg-red-600 hover:bg-red-700">
-                      <Upload className="mr-2 h-4 w-4" />
-                      Upload Portfolio Item
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
+              <div className="space-y-6">
+                {/* Upload Portfolio Button */}
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <CardTitle>Portfolio</CardTitle>
+                        <CardDescription>Showcase your best work and projects</CardDescription>
+                      </div>
+                      <Button className="bg-red-600 hover:bg-red-700" asChild>
+                        <Link href="/portfolio/upload">
+                          <Upload className="mr-2 h-4 w-4" />
+                          Upload Portfolio Item
+                        </Link>
+                      </Button>
+                    </div>
+                  </CardHeader>
+                </Card>
+
+                {/* Portfolio Display Card */}
+                <Card>
+                  <CardContent className="p-6">
+                    {portfolioItems.length === 0 ? (
+                      <div className="text-center text-gray-500 py-8">
+                        <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                        <p className="text-lg font-semibold text-gray-900 mb-2">No portfolio items yet</p>
+                        <p className="text-gray-600 mb-4">Upload your best work to showcase your skills</p>
+                        <Button className="bg-red-600 hover:bg-red-700" asChild>
+                          <Link href="/portfolio/upload">
+                            <Upload className="mr-2 h-4 w-4" />
+                            Upload Portfolio Item
+                          </Link>
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="relative">
+                        {/* Portfolio Navigation */}
+                        {portfolioItems.length > 1 && (
+                          <>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={previousPortfolioItem}
+                              className="absolute left-0 top-1/2 transform -translate-y-1/2 z-10 bg-white/80 hover:bg-white shadow-sm"
+                            >
+                              <ChevronLeft className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={nextPortfolioItem}
+                              className="absolute right-0 top-1/2 transform -translate-y-1/2 z-10 bg-white/80 hover:bg-white shadow-sm"
+                            >
+                              <ChevronRight className="h-4 w-4" />
+                            </Button>
+                          </>
+                        )}
+
+                        {/* Current Portfolio Item */}
+                        <div className="px-8">
+                          <div className="space-y-4">
+                            {/* Portfolio Image */}
+                            {portfolioItems[currentPortfolioIndex].file_url && (
+                              <div className="relative">
+                                <img
+                                  src={portfolioItems[currentPortfolioIndex].file_url}
+                                  alt={portfolioItems[currentPortfolioIndex].title}
+                                  className="w-full h-48 object-cover rounded-lg"
+                                />
+                                {portfolioItems[currentPortfolioIndex].featured && (
+                                  <Badge className="absolute top-2 left-2 bg-yellow-500 text-white">
+                                    Featured
+                                  </Badge>
+                                )}
+                              </div>
+                            )}
+
+                            {/* Portfolio Info */}
+                            <div>
+                              <div className="flex items-center justify-between mb-2">
+                                <h3 className="text-xl font-semibold text-gray-900">
+                                  {portfolioItems[currentPortfolioIndex].title}
+                                </h3>
+                                {portfolioItems[currentPortfolioIndex].project_url && (
+                                  <Button variant="outline" size="sm" asChild>
+                                    <a
+                                      href={portfolioItems[currentPortfolioIndex].project_url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                    >
+                                      <ExternalLink className="h-4 w-4 mr-2" />
+                                      View Project
+                                    </a>
+                                  </Button>
+                                )}
+                              </div>
+                              
+                              <Badge variant="secondary" className="mb-3">
+                                {portfolioItems[currentPortfolioIndex].category.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                              </Badge>
+
+                              <p className="text-gray-700 mb-4">
+                                {portfolioItems[currentPortfolioIndex].description}
+                              </p>
+
+                              {/* Portfolio Tags */}
+                              {portfolioItems[currentPortfolioIndex].tags.length > 0 && (
+                                <div>
+                                  <p className="text-sm font-medium text-gray-700 mb-2">Technologies Used:</p>
+                                  <div className="flex flex-wrap gap-2">
+                                    {portfolioItems[currentPortfolioIndex].tags.map((tag) => (
+                                      <Badge key={tag} variant="outline" className="text-xs">
+                                        {tag}
+                                      </Badge>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Portfolio Item Counter */}
+                          {portfolioItems.length > 1 && (
+                            <div className="text-center mt-4">
+                              <p className="text-sm text-gray-500">
+                                {currentPortfolioIndex + 1} of {portfolioItems.length}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
             </TabsContent>
 
             {/* Ratings Tab */}
