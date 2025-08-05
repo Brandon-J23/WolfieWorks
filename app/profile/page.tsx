@@ -14,11 +14,11 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
-import { GraduationCap, Star, Upload, Edit, Save, X, Heart, DollarSign, Clock, Plus } from "lucide-react"
+import { GraduationCap, Star, Upload, Edit, Save, X, Heart, DollarSign, Clock, Plus } from 'lucide-react'
 import Link from "next/link"
 import { useAuth } from "@/contexts/auth-context"
 import { toast } from "@/hooks/use-toast"
-import { supabase } from "@/supabase"
+import { supabase } from "@/lib/supabase/client"
 
 const AVAILABLE_SKILLS = [
   "JavaScript",
