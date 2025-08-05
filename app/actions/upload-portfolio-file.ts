@@ -1,19 +1,18 @@
 "use server"
 
-// In a real application, this would upload to a storage service like Vercel Blob
-// For this demo, we'll simulate the upload process
+import { createServerClient } from "@/lib/supabase/server"
+import { createServiceClient } from "@/lib/supabase/service"
 
 export async function uploadPortfolioFile(
-  // Renamed function
   formData: FormData,
 ): Promise<{ url: string; success: boolean; error?: string }> {
   try {
-    // Simulate processing time
-    await new Promise((resolve) => setTimeout(resolve, 1500))
-
+    console.log("Starting file upload process...")
+    
     const file = formData.get("file") as File
 
     if (!file) {
+      console.log("No file provided")
       return {
         success: false,
         url: "",
@@ -21,8 +20,15 @@ export async function uploadPortfolioFile(
       }
     }
 
-    // Check file type (still image-specific for now, as per original functionality)
+    console.log("File details:", {
+      name: file.name,
+      size: file.size,
+      type: file.type
+    })
+
+    // Check file type
     if (!file.type.startsWith("image/")) {
+      console.log("Invalid file type:", file.type)
       return {
         success: false,
         url: "",
@@ -32,6 +38,7 @@ export async function uploadPortfolioFile(
 
     // Check file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
+      console.log("File too large:", file.size)
       return {
         success: false,
         url: "",
@@ -39,20 +46,58 @@ export async function uploadPortfolioFile(
       }
     }
 
-    // In a real app, you would upload to a storage service here
-    // For this demo, we'll return a placeholder URL
-    const fileUrl = `/placeholder.svg?height=400&width=600&text=${encodeURIComponent(file.name)}` // Changed variable name
+    // Generate unique filename
+    const fileExtension = file.name.split('.').pop()
+    const fileName = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${fileExtension}`
+    console.log("Generated filename:", fileName)
+
+    // Try with service client first for storage operations
+    let supabase
+    try {
+      supabase = createServiceClient()
+      console.log("Using service client for upload")
+    } catch (serviceError) {
+      console.log("Service client not available, using server client:", serviceError)
+      supabase = await createServerClient()
+    }
+
+    // Upload file to Supabase storage in portfolio-images bucket
+    console.log("Attempting to upload to Supabase storage...")
+    const { data, error } = await supabase.storage
+      .from('portfolio-images')
+      .upload(fileName, file, {
+        cacheControl: '3600',
+        upsert: false
+      })
+
+    if (error) {
+      console.error('Supabase storage error:', error)
+      return {
+        success: false,
+        url: "",
+        error: `Failed to upload file to storage: ${error.message}`,
+      }
+    }
+
+    console.log("Upload successful, data:", data)
+
+    // Get the public URL
+    const { data: { publicUrl } } = supabase.storage
+      .from('portfolio-images')
+      .getPublicUrl(data.path)
+
+    console.log("Generated public URL:", publicUrl)
 
     return {
       success: true,
-      url: fileUrl, // Changed variable name
+      url: publicUrl,
     }
   } catch (error) {
-    console.error("Error uploading file:", error) // Changed log message
+    console.error("Error uploading file:", error)
     return {
       success: false,
       url: "",
-      error: "Failed to upload file", // Changed error message
+      error: "Failed to upload file",
     }
   }
 }

@@ -141,10 +141,10 @@ export function PortfolioShowcase({
                   ))}
                 </div>
               </div>
-              {selectedItem.projectUrl && (
+              {selectedItem.project_url && (
                 <div className="pt-4">
                   <Button asChild className="bg-red-600 hover:bg-red-700">
-                    <a href={selectedItem.projectUrl} target="_blank" rel="noopener noreferrer">
+                    <a href={selectedItem.project_url} target="_blank" rel="noopener noreferrer">
                       <ExternalLink className="h-4 w-4 mr-2" />
                       View Project
                     </a>
