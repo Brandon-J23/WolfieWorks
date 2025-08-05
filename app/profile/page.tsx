@@ -194,7 +194,7 @@ export default function ProfilePage() {
         email: user.email || "",
         phone: sourceData?.phone || "",
         major: sourceData?.major || "",
-        year: sourceData?.academic_year || sourceData?.year || "",
+        year: sourceData?.academic_year || sourceData?.academic_year || "",
         bio: sourceData?.bio || "",
         skills: sourceData?.skills || [],
         hourlyRate: sourceData?.hourly_rate?.toString() || "",
@@ -233,13 +233,30 @@ export default function ProfilePage() {
     setIsUploadingImage(true)
 
     try {
-      // Create a unique filename with user ID prefix
-      const fileExt = file.name.split(".").pop()
-      const fileName = `${user.id}-${Date.now()}.${fileExt}`
-      const filePath = `avatars/${fileName}`
+      // Ensure we have the current session
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession()
 
-      console.log("Uploading file to:", filePath)
-      console.log("User ID:", user.id)
+      if (sessionError || !session) {
+        console.error("Session error:", sessionError)
+        throw new Error("Authentication required. Please sign in again.")
+      }
+
+      console.log("Auth check passed:")
+      console.log("- Session exists:", !!session)
+      console.log("- User ID from session:", session.user.id)
+      console.log("- User ID from context:", user.id)
+      console.log("- Auth role:", session.user.role)
+
+      // Create a unique filename with user ID as folder
+      const fileExt = file.name.split(".").pop()
+      const fileName = `avatar-${Date.now()}.${fileExt}`
+      const filePath = `${user.id}/${fileName}`
+
+      console.log("Upload details:")
+      console.log("- Bucket: user-uploads")
+      console.log("- File path:", filePath)
+      console.log("- File type:", file.type)
+      console.log("- File size:", file.size)
 
       // Upload to Supabase storage
       const { data: uploadData, error: uploadError } = await supabase.storage
@@ -351,7 +368,7 @@ export default function ProfilePage() {
         academic_year: profileData.year,
         bio: profileData.bio,
         skills: profileData.skills,
-        hourly_rate: profileData.hourlyRate ? Number.parseFloat(profileData.hourlyRate) : null,
+        hourly_rate: profileData.hourlyRate ? Number.parseFloat(profileData.hourlyRate) : undefined,
         location: profileData.location,
         user_type: profileData.userType,
         payment_methods: profileData.paymentMethods,
@@ -843,9 +860,8 @@ export default function ProfilePage() {
                               {[...Array(5)].map((_, i) => (
                                 <Star
                                   key={i}
-                                  className={`h-4 w-4 ${
-                                    i < rating.rating ? "fill-yellow-400 text-yellow-400" : "text-gray-300"
-                                  }`}
+                                  className={`h-4 w-4 ${i < rating.rating ? "fill-yellow-400 text-yellow-400" : "text-gray-300"
+                                    }`}
                                 />
                               ))}
                             </div>
