@@ -14,7 +14,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
-import { GraduationCap, Star, Upload, Edit, Save, X, Heart, DollarSign, Clock, Plus } from 'lucide-react'
+import { GraduationCap, Star, Upload, Edit, Save, X, Heart, DollarSign, Clock, Plus } from "lucide-react"
 import Link from "next/link"
 import { useAuth } from "@/contexts/auth-context"
 import { toast } from "@/hooks/use-toast"
@@ -233,24 +233,34 @@ export default function ProfilePage() {
     setIsUploadingImage(true)
 
     try {
-      // Create a unique filename
+      // Create a unique filename with user ID prefix
       const fileExt = file.name.split(".").pop()
       const fileName = `${user.id}-${Date.now()}.${fileExt}`
       const filePath = `avatars/${fileName}`
 
+      console.log("Uploading file to:", filePath)
+      console.log("User ID:", user.id)
+
       // Upload to Supabase storage
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from("user-uploads")
-        .upload(filePath, file)
+        .upload(filePath, file, {
+          cacheControl: "3600",
+          upsert: false,
+        })
 
       if (uploadError) {
+        console.error("Upload error:", uploadError)
         throw uploadError
       }
+
+      console.log("Upload successful:", uploadData)
 
       // Get public URL
       const { data: urlData } = supabase.storage.from("user-uploads").getPublicUrl(filePath)
 
       const avatarUrl = urlData.publicUrl
+      console.log("Public URL:", avatarUrl)
 
       // Update profile data
       setProfileData((prev) => ({ ...prev, avatarUrl }))
@@ -264,7 +274,7 @@ export default function ProfilePage() {
       console.error("Error uploading image:", error)
       toast({
         title: "Upload failed",
-        description: "Failed to upload image. Please try again.",
+        description: `Failed to upload image: ${error instanceof Error ? error.message : "Unknown error"}`,
         variant: "destructive",
       })
     } finally {
@@ -352,6 +362,7 @@ export default function ProfilePage() {
       await updateProfile(updateData)
 
       setIsEditing(false)
+      setImagePreview(null) // Clear preview since it's now saved
       toast({
         title: "Profile updated",
         description: "Your profile has been successfully updated.",
