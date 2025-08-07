@@ -130,7 +130,7 @@ export async function deleteUserAccount(userId: string) {
     }
   }
 }
-
+//Doing this to save changes 8/7/2025
 // // ✅ ✅ ✅ NEW FUNCTION TO POST A JOB TO SUPABASE ✅ ✅ ✅
 // export async function createJob(formData: FormData) {
 //   try {
