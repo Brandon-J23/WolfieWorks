@@ -2,6 +2,7 @@
 
 import type React from "react"
 
+import { supabase } from "@/lib/supabase/client"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -16,7 +17,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { CalendarIcon, Plus, X, DollarSign, AlertCircle } from "lucide-react"
 import { format } from "date-fns"
 import Link from "next/link"
-import { createJob } from "@/app/actions/job-actions"
+
 
 export default function PostJobPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -68,65 +69,64 @@ export default function PostJobPage() {
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsSubmitting(true)
-    setError("")
-    setSuccess("")
+  e.preventDefault()
+  setIsSubmitting(true)
+  setError("")
+  setSuccess("")
 
-    try {
-      // Validation
-      if (!jobData.title || !jobData.description || !jobData.category) {
-        throw new Error("Please fill in all required fields")
-      }
-
-      if (jobData.requiredSkills.length === 0) {
-        throw new Error("Please add at least one required skill")
-      }
-
-      if (jobData.budgetType !== "negotiable" && (!jobData.budgetMin || !jobData.budgetMax)) {
-        throw new Error("Please specify budget range")
-      }
-
-      const formData = new FormData()
-      formData.append("title", jobData.title)
-      formData.append("description", jobData.description)
-      formData.append("category", jobData.category)
-      formData.append("budgetType", jobData.budgetType)
-      formData.append("budgetMin", jobData.budgetMin)
-      formData.append("budgetMax", jobData.budgetMax)
-      formData.append("requiredSkills", JSON.stringify(jobData.requiredSkills))
-      formData.append("experienceLevel", jobData.experienceLevel)
-      formData.append("locationType", jobData.locationType)
-      if (deadline) {
-        formData.append("deadline", deadline.toISOString())
-      }
-
-      const result = await createJob(formData)
-
-      if (result.success) {
-        setSuccess("Job posted successfully!")
-        // Reset form
-        setJobData({
-          title: "",
-          description: "",
-          category: "",
-          budgetType: "fixed",
-          budgetMin: "",
-          budgetMax: "",
-          requiredSkills: [],
-          experienceLevel: "intermediate",
-          locationType: "remote",
-        })
-        setDeadline(undefined)
-      } else {
-        setError(result.error || "Failed to post job")
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to post job")
-    } finally {
-      setIsSubmitting(false)
+  try {
+    // Validation
+    if (!jobData.title || !jobData.description || !jobData.category) {
+      throw new Error("Please fill in all required fields")
     }
+    if (jobData.requiredSkills.length === 0) {
+      throw new Error("Please add at least one required skill")
+    }
+    if (jobData.budgetType !== "negotiable" && (!jobData.budgetMin || !jobData.budgetMax)) {
+      throw new Error("Please specify budget range")
+    }
+
+    // Get current user
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
+    if (!user || userError) throw new Error("Not authenticated")
+
+    // Insert job posting
+    const { error } = await supabase.from("job_postings").insert({
+      created_by: user.id,
+      title: jobData.title,
+      description: jobData.description,
+      category: jobData.category,
+      budget_type: jobData.budgetType,
+      budget_min: jobData.budgetMin ? Number(jobData.budgetMin) : null,
+      budget_max: jobData.budgetMax ? Number(jobData.budgetMax) : null,
+      required_skills: jobData.requiredSkills,
+      experience_level: jobData.experienceLevel,
+      location_type: jobData.locationType,
+      deadline: deadline ? deadline.toISOString().split("T")[0] : null,
+      created_at: new Date().toISOString(),
+    })
+
+    if (error) throw error
+
+    setSuccess("Job posted successfully!")
+    setJobData({
+      title: "",
+      description: "",
+      category: "",
+      budgetType: "fixed",
+      budgetMin: "",
+      budgetMax: "",
+      requiredSkills: [],
+      experienceLevel: "intermediate",
+      locationType: "remote",
+    })
+    setDeadline(undefined)
+  } catch (err) {
+    setError(err instanceof Error ? err.message : "Failed to post job")
+  } finally {
+    setIsSubmitting(false)
   }
+}
 
   return (
     <div className="min-h-screen bg-gray-50">

@@ -1,6 +1,7 @@
 "use server"
 
 import { db } from "@/lib/database"
+import { supabase } from "@/lib/supabase/client"
 import bcrypt from "bcryptjs"
 
 export async function createUser(formData: FormData) {
@@ -129,3 +130,44 @@ export async function deleteUserAccount(userId: string) {
     }
   }
 }
+
+// // ✅ ✅ ✅ NEW FUNCTION TO POST A JOB TO SUPABASE ✅ ✅ ✅
+// export async function createJob(formData: FormData) {
+//   try {
+//     const user = (await supabase.auth.getUser()).data.user
+
+//     if (!user) {
+//       return { success: false, error: "Not authenticated" }
+//     }
+
+//     const requiredSkills = formData.get("requiredSkills")
+//     const skillsArray = requiredSkills ? JSON.parse(requiredSkills as string) : []
+
+//     const { error } = await supabase.from("job_postings").insert({
+//       created_by: user.id,
+//       title: formData.get("title") as string,
+//       description: formData.get("description") as string,
+//       category: formData.get("category") as string,
+//       budget_type: formData.get("budgetType") as string,
+//       budget_min: formData.get("budgetMin") ? Number(formData.get("budgetMin")) : null,
+//       budget_max: formData.get("budgetMax") ? Number(formData.get("budgetMax")) : null,
+//       required_skills: skillsArray,
+//       experience_level: formData.get("experienceLevel") as string,
+//       location_type: formData.get("locationType") as string,
+//       deadline: formData.get("deadline") ? new Date(formData.get("deadline") as string) : null,
+//       created_at: new Date(),
+//     })
+
+//     if (error) {
+//       return { success: false, error: error.message }
+//     }
+
+//     return { success: true, message: "Job posted successfully!" }
+//   } catch (error) {
+//     console.error("Error posting job:", error)
+//     return {
+//       success: false,
+//       error: error instanceof Error ? error.message : "Failed to post job",
+//     }
+//   }
+// }
