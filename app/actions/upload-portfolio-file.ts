@@ -1,5 +1,6 @@
 "use server"
 
+
 import { createServerClient } from "@/lib/supabase/server"
 import { createServiceClient } from "@/lib/supabase/service"
 
@@ -13,12 +14,14 @@ export async function uploadPortfolioFile(
 
     if (!file) {
       console.log("No file provided")
+
       return {
         success: false,
         url: "",
         error: "No file provided",
       }
     }
+
 
     console.log("File details:", {
       name: file.name,
@@ -29,6 +32,7 @@ export async function uploadPortfolioFile(
     // Check file type
     if (!file.type.startsWith("image/")) {
       console.log("Invalid file type:", file.type)
+
       return {
         success: false,
         url: "",
@@ -38,13 +42,16 @@ export async function uploadPortfolioFile(
 
     // Check file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
+
       console.log("File too large:", file.size)
+
       return {
         success: false,
         url: "",
         error: "File size must be less than 5MB",
       }
     }
+
 
     // Generate unique filename
     const fileExtension = file.name.split('.').pop()
@@ -101,3 +108,4 @@ export async function uploadPortfolioFile(
     }
   }
 }
+

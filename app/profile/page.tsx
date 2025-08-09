@@ -349,7 +349,7 @@ export default function ProfilePage() {
                       <CardTitle>Portfolio</CardTitle>
                       <CardDescription>Showcase your best work and projects</CardDescription>
                     </div>
-                    
+
                   </div>
                 </CardHeader>
                 <CardContent>

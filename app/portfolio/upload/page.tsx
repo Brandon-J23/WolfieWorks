@@ -16,7 +16,9 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { GraduationCap, Upload, X, Plus, Loader2, ArrowLeft, ImageIcon } from "lucide-react"
 import Link from "next/link"
 import { useAuth } from "@/contexts/auth-context"
+
 import { createPortfolioItemDirect } from "@/app/actions/portfolio-actions-direct"
+
 import { uploadPortfolioFile } from "@/app/actions/upload-portfolio-file"
 
 const categories = [
@@ -173,6 +175,7 @@ export default function UploadPortfolioPage() {
 
       // Create portfolio item
       setUploadProgress(75)
+
       
       // Prepare portfolio data directly (no FormData needed)
       const portfolioData = {
@@ -188,6 +191,7 @@ export default function UploadPortfolioPage() {
 
       console.log("Submitting portfolio data:", portfolioData)
       const result = await createPortfolioItemDirect(portfolioData)
+
 
       if (!result.success) {
         throw new Error(result.error || "Failed to create portfolio item")

@@ -1,5 +1,6 @@
 "use server"
 
+
 import { createServerClient } from "@/lib/supabase/server"
 
 export async function createPortfolioItem(userId: string, formData: FormData) {
@@ -39,11 +40,13 @@ export async function createPortfolioItem(userId: string, formData: FormData) {
       tags = []
     }
     
+
     const portfolioData = {
       user_id: userId,
       title: formData.get("title") as string,
       description: formData.get("description") as string,
       category: formData.get("category") as string,
+
       file_url: (formData.get("fileUrl") as string) || null,
       project_url: (formData.get("projectUrl") as string) || null,
       featured: formData.get("featured") === "true",
@@ -68,6 +71,7 @@ export async function createPortfolioItem(userId: string, formData: FormData) {
     }
 
     return { success: true, portfolioItem: data }
+
   } catch (error) {
     console.error("Error creating portfolio item:", error)
     return {
@@ -79,17 +83,22 @@ export async function createPortfolioItem(userId: string, formData: FormData) {
 
 export async function updatePortfolioItem(itemId: string, formData: FormData) {
   try {
+
     const supabase = await createServerClient()
     
+
     const updates = {
       title: formData.get("title") as string,
       description: formData.get("description") as string,
       category: formData.get("category") as string,
+
       tags: JSON.parse(formData.get("tags") as string),
       file_url: (formData.get("fileUrl") as string) || null,
+
       project_url: (formData.get("projectUrl") as string) || null,
       featured: formData.get("featured") === "true",
     }
+
 
     const { data, error } = await supabase
       .from('user_portfolio')
@@ -107,6 +116,7 @@ export async function updatePortfolioItem(itemId: string, formData: FormData) {
     }
 
     return { success: true, portfolioItem: data }
+
   } catch (error) {
     console.error("Error updating portfolio item:", error)
     return {
@@ -118,6 +128,7 @@ export async function updatePortfolioItem(itemId: string, formData: FormData) {
 
 export async function deletePortfolioItem(itemId: string) {
   try {
+
     const supabase = await createServerClient()
     
     const { error } = await supabase
@@ -133,6 +144,7 @@ export async function deletePortfolioItem(itemId: string) {
       }
     }
 
+
     return { success: true, message: "Portfolio item deleted successfully" }
   } catch (error) {
     console.error("Error deleting portfolio item:", error)
@@ -145,6 +157,7 @@ export async function deletePortfolioItem(itemId: string) {
 
 export async function getUserPortfolio(userId: string) {
   try {
+
     const supabase = await createServerClient()
     
     const { data, error } = await supabase
@@ -163,6 +176,7 @@ export async function getUserPortfolio(userId: string) {
     }
 
     return { success: true, portfolioItems: data || [] }
+
   } catch (error) {
     console.error("Error fetching portfolio:", error)
     return {
@@ -175,6 +189,7 @@ export async function getUserPortfolio(userId: string) {
 
 export async function getFeaturedPortfolio() {
   try {
+
     const supabase = await createServerClient()
     
     const { data, error } = await supabase
@@ -194,6 +209,7 @@ export async function getFeaturedPortfolio() {
     }
 
     return { success: true, featuredItems: data || [] }
+
   } catch (error) {
     console.error("Error fetching featured portfolio:", error)
     return {
@@ -202,6 +218,7 @@ export async function getFeaturedPortfolio() {
       featuredItems: [],
     }
   }
+
 }
 
 // Function for public profiles to get portfolio items
@@ -234,3 +251,4 @@ export async function getPortfolioItems(userId: string) {
     }
   }
 }
+
