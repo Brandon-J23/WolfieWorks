@@ -349,12 +349,7 @@ export default function ProfilePage() {
                       <CardTitle>Portfolio</CardTitle>
                       <CardDescription>Showcase your best work and projects</CardDescription>
                     </div>
-                    <Button asChild className="bg-red-600 hover:bg-red-700">
-                      <Link href="/portfolio/upload">
-                        <Upload className="mr-2 h-4 w-4" />
-                        Upload Portfolio Item
-                      </Link>
-                    </Button>
+
                   </div>
                 </CardHeader>
                 <CardContent>

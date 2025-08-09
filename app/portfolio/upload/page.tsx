@@ -16,7 +16,9 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { GraduationCap, Upload, X, Plus, Loader2, ArrowLeft, ImageIcon } from "lucide-react"
 import Link from "next/link"
 import { useAuth } from "@/contexts/auth-context"
-import { createPortfolioItem } from "@/app/actions/portfolio-actions"
+
+import { createPortfolioItemDirect } from "@/app/actions/portfolio-actions-direct"
+
 import { uploadPortfolioFile } from "@/app/actions/upload-portfolio-file"
 
 const categories = [
@@ -173,16 +175,23 @@ export default function UploadPortfolioPage() {
 
       // Create portfolio item
       setUploadProgress(75)
-      const portfolioFormData = new FormData()
-      portfolioFormData.append("title", formData.title)
-      portfolioFormData.append("description", formData.description)
-      portfolioFormData.append("category", formData.category)
-      portfolioFormData.append("tags", JSON.stringify(tags))
-      portfolioFormData.append("fileUrl", fileUrl)
-      portfolioFormData.append("projectUrl", formData.projectUrl)
-      portfolioFormData.append("featured", formData.featured.toString())
 
-      const result = await createPortfolioItem(user.id, portfolioFormData)
+      
+      // Prepare portfolio data directly (no FormData needed)
+      const portfolioData = {
+        user_id: user.id,
+        title: formData.title,
+        description: formData.description,
+        category: formData.category,
+        tags: tags,
+        file_url: fileUrl,
+        project_url: formData.projectUrl || null,
+        featured: formData.featured,
+      }
+
+      console.log("Submitting portfolio data:", portfolioData)
+      const result = await createPortfolioItemDirect(portfolioData)
+
 
       if (!result.success) {
         throw new Error(result.error || "Failed to create portfolio item")
