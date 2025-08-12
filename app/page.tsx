@@ -120,7 +120,9 @@ export default function HomePage() {
                     <ArrowRight className="ml-2 h-5 w-5" />
                   </Button>
                 </Link>
+
                 <Link href="/browse_freelancers">
+
                   <Button
                     size="lg"
                     variant="outline"
@@ -268,7 +270,9 @@ export default function HomePage() {
               <h4 className="font-semibold mb-4">For Clients</h4>
               <ul className="space-y-2 text-gray-400">
                 <li>
+
                   <Link href="/browse_freelancers" className="hover:text-white">
+
                     Browse Freelancers
                   </Link>
                 </li>

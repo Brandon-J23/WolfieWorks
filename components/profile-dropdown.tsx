@@ -10,7 +10,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { User, Settings, LogOut, Briefcase } from "lucide-react"
+
+import { User, Settings, LogOut, Briefcase, Star } from "lucide-react"
+
 import Link from "next/link"
 import { useAuth } from "@/contexts/auth-context"
 
@@ -27,7 +29,9 @@ export function ProfileDropdown() {
   const initials =
     profile?.first_name && profile?.last_name
       ? `${profile.first_name[0]}${profile.last_name[0]}`
-      : displayName[0].toUpperCase()
+
+      : user.email?.[0]?.toUpperCase() || "U"
+
 
   return (
     <DropdownMenu>
@@ -54,9 +58,17 @@ export function ProfileDropdown() {
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
-          <Link href="/dashboard" className="cursor-pointer">
+
+          <Link href="/portfolio/upload" className="cursor-pointer">
             <Briefcase className="mr-2 h-4 w-4" />
-            <span>Dashboard</span>
+            <span>Upload Work</span>
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link href="/jobs" className="cursor-pointer">
+            <Star className="mr-2 h-4 w-4" />
+            <span>Find Jobs</span>
+
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>

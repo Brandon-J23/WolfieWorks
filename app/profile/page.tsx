@@ -394,6 +394,7 @@ export default function ProfilePage() {
 
             {/* Portfolio Tab */}
             <TabsContent value="portfolio">
+
               <div className="space-y-6">
                 {/* Upload Portfolio Button */}
                 <Card>
@@ -529,6 +530,7 @@ export default function ProfilePage() {
                   </CardContent>
                 </Card>
               </div>
+
             </TabsContent>
 
             {/* Ratings Tab */}
