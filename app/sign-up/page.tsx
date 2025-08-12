@@ -1,7 +1,10 @@
 "use client"
 
 import type React from "react"
-import { useState } from "react"
+
+
+import { useState, useMemo } from "react"
+
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -12,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { GraduationCap, Eye, EyeOff, AlertCircle, CheckCircle } from "lucide-react"
 import { supabase } from "@/lib/supabase/client"
+import { majors } from "@/lib/majors"
 
 const departments = [
   "Computer Science",
@@ -42,7 +46,14 @@ export default function SignUpPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
-  const [success, setSuccess] = useState(false)
+
+  const [success, setSuccess] = useState("")
+  const [majorSearchTerm, setMajorSearchTerm] = useState("")
+  const filteredMajors = useMemo(
+    () => majors.filter(m => m.toLowerCase().includes(majorSearchTerm.toLowerCase())),
+    [majorSearchTerm]
+  )
+
 
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
@@ -65,8 +76,14 @@ export default function SignUpPage() {
     return true
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+
+    if (!formData.email.endsWith("@stonybrook.edu")) {
+      
+      setError("Please use your Stony Brook University email address")
+      setLoading(false)
+      return
+    }
+
 
     if (!validateForm()) return
 
@@ -181,36 +198,54 @@ export default function SignUpPage() {
                 <p className="text-xs text-gray-500">Must be a Stony Brook University email</p>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="department">Department</Label>
-                <Select value={formData.department} onValueChange={(value) => handleInputChange("department", value)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select your department" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {departments.map((dept) => (
-                      <SelectItem key={dept} value={dept}>
-                        {dept}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="year">Academic Year</Label>
-                <Select value={formData.year} onValueChange={(value) => handleInputChange("year", value)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select your year" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Freshman">Freshman</SelectItem>
-                    <SelectItem value="Sophomore">Sophomore</SelectItem>
-                    <SelectItem value="Junior">Junior</SelectItem>
-                    <SelectItem value="Senior">Senior</SelectItem>
-                    <SelectItem value="Graduate">Graduate</SelectItem>
-                  </SelectContent>
-                </Select>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="major">Major</Label>
+                  {/** searchable select for major **/}
+                  <Select
+                    value={formData.major}
+                    onValueChange={(value) => handleInputChange("major", value)}
+                    required
+                  >
+                    <SelectTrigger id="major">
+                      <SelectValue placeholder="Select major" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <div className="px-2 py-1">
+                        <Input
+                          type="text"
+                          placeholder="Search majors..."
+                          value={majorSearchTerm}
+                          onChange={(e) => setMajorSearchTerm(e.target.value)}
+                          className="mb-2 text-sm w-full"
+                        />
+                      </div>
+                      {filteredMajors.map(m => (
+                        <SelectItem key={m} value={m}>{m}</SelectItem>
+                      ))}
+                      {filteredMajors.length === 0 && majorSearchTerm && (
+                        <p className="px-3 text-sm text-gray-500">No majors found</p>
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="year">Academic Year</Label>
+                  <Select value={formData.year} onValueChange={(value) => handleInputChange("year", value)} required>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select year" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Freshman">Freshman</SelectItem>
+                      <SelectItem value="Sophomore">Sophomore</SelectItem>
+                      <SelectItem value="Junior">Junior</SelectItem>
+                      <SelectItem value="Senior">Senior</SelectItem>
+                      <SelectItem value="Graduate">Graduate</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
               </div>
 
               <div className="space-y-2">

@@ -1,20 +1,62 @@
-"use server"
+'use server'
 
+import { createServerClient } from '@/lib/supabase/server'
 
-import { createServerClient } from "@/lib/supabase/server"
+// Interface for type safety, from the 'freelancer-search-jacky' branch
+export interface PortfolioItem {
+  id: string
+  user_id: string
+  title: string
+  description: string
+  category: string
+  tags: string[]
+  file_url: string | null
+  project_url: string | null
+  featured: boolean
+  created_at: string
+  updated_at: string
+}
 
+// Fetches all portfolio items for a user, with featured items first (from 'freelancer-search-jacky')
+export async function getPortfolioItems(userId: string) {
+  try {
+    const supabase = await createServerClient()
+    const { data, error } = await supabase
+      .from('user_portfolio')
+      .select('*')
+      .eq('user_id', userId)
+      .order('featured', { ascending: false }) // Featured items first
+      .order('created_at', { ascending: false }) // Then by creation date (newest first)
+
+    if (error) {
+      console.error('Error fetching portfolio items:', error)
+      return { success: false, error: error.message, data: [] }
+    }
+
+    return { success: true, data: data || [] }
+  } catch (error) {
+    console.error('Error fetching portfolio items:', error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'An unexpected error occurred',
+      data: []
+    }
+  }
+}
+
+// Creates a new portfolio item with enhanced authentication checks (from 'merge-test-branch')
 export async function createPortfolioItem(userId: string, formData: FormData) {
   try {
     const supabase = await createServerClient()
-    
+
     // Debug: Check if we have a valid session
     const { data: { user }, error: authError } = await supabase.auth.getUser()
-    console.log("Server auth check:", { 
-      providedUserId: userId, 
-      authUserId: user?.id, 
-      authError: authError?.message 
+    console.log("Server auth check:", {
+      providedUserId: userId,
+      authUserId: user?.id,
+      authError: authError?.message
     })
-    
+
     if (!user) {
       console.error("No authenticated user found on server")
       return {
@@ -22,7 +64,7 @@ export async function createPortfolioItem(userId: string, formData: FormData) {
         error: "Authentication required to create portfolio items",
       }
     }
-    
+
     if (user.id !== userId) {
       console.error("User ID mismatch:", { provided: userId, authenticated: user.id })
       return {
@@ -30,7 +72,7 @@ export async function createPortfolioItem(userId: string, formData: FormData) {
         error: "User authentication mismatch",
       }
     }
-    
+
     // Parse tags, but make it optional in case column doesn't exist yet
     let tags: string[] = []
     try {
@@ -39,14 +81,12 @@ export async function createPortfolioItem(userId: string, formData: FormData) {
       console.log("Could not parse tags:", e)
       tags = []
     }
-    
 
     const portfolioData = {
       user_id: userId,
       title: formData.get("title") as string,
       description: formData.get("description") as string,
       category: formData.get("category") as string,
-
       file_url: (formData.get("fileUrl") as string) || null,
       project_url: (formData.get("projectUrl") as string) || null,
       featured: formData.get("featured") === "true",
@@ -81,24 +121,19 @@ export async function createPortfolioItem(userId: string, formData: FormData) {
   }
 }
 
+// Updates an existing portfolio item (from 'merge-test-branch')
 export async function updatePortfolioItem(itemId: string, formData: FormData) {
   try {
-
     const supabase = await createServerClient()
-    
-
     const updates = {
       title: formData.get("title") as string,
       description: formData.get("description") as string,
       category: formData.get("category") as string,
-
       tags: JSON.parse(formData.get("tags") as string),
       file_url: (formData.get("fileUrl") as string) || null,
-
       project_url: (formData.get("projectUrl") as string) || null,
       featured: formData.get("featured") === "true",
     }
-
 
     const { data, error } = await supabase
       .from('user_portfolio')
@@ -116,7 +151,6 @@ export async function updatePortfolioItem(itemId: string, formData: FormData) {
     }
 
     return { success: true, portfolioItem: data }
-
   } catch (error) {
     console.error("Error updating portfolio item:", error)
     return {
@@ -126,11 +160,10 @@ export async function updatePortfolioItem(itemId: string, formData: FormData) {
   }
 }
 
+// Deletes a portfolio item (from 'merge-test-branch')
 export async function deletePortfolioItem(itemId: string) {
   try {
-
     const supabase = await createServerClient()
-    
     const { error } = await supabase
       .from('user_portfolio')
       .delete()
@@ -144,7 +177,6 @@ export async function deletePortfolioItem(itemId: string) {
       }
     }
 
-
     return { success: true, message: "Portfolio item deleted successfully" }
   } catch (error) {
     console.error("Error deleting portfolio item:", error)
@@ -155,43 +187,10 @@ export async function deletePortfolioItem(itemId: string) {
   }
 }
 
-export async function getUserPortfolio(userId: string) {
-  try {
-
-    const supabase = await createServerClient()
-    
-    const { data, error } = await supabase
-      .from('user_portfolio')
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false })
-
-    if (error) {
-      console.error("Error fetching portfolio:", error)
-      return {
-        success: false,
-        error: error.message || "Failed to fetch portfolio",
-        portfolioItems: [],
-      }
-    }
-
-    return { success: true, portfolioItems: data || [] }
-
-  } catch (error) {
-    console.error("Error fetching portfolio:", error)
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : "Failed to fetch portfolio",
-      portfolioItems: [],
-    }
-  }
-}
-
+// Fetches featured portfolio items (from 'merge-test-branch')
 export async function getFeaturedPortfolio() {
   try {
-
     const supabase = await createServerClient()
-    
     const { data, error } = await supabase
       .from('user_portfolio')
       .select('*')
@@ -209,7 +208,6 @@ export async function getFeaturedPortfolio() {
     }
 
     return { success: true, featuredItems: data || [] }
-
   } catch (error) {
     console.error("Error fetching featured portfolio:", error)
     return {
@@ -218,37 +216,4 @@ export async function getFeaturedPortfolio() {
       featuredItems: [],
     }
   }
-
 }
-
-// Function for public profiles to get portfolio items
-export async function getPortfolioItems(userId: string) {
-  try {
-    const supabase = await createServerClient()
-    
-    const { data, error } = await supabase
-      .from('user_portfolio')
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false })
-
-    if (error) {
-      console.error("Error fetching portfolio items:", error)
-      return {
-        success: false,
-        error: error.message || "Failed to fetch portfolio items",
-        data: [],
-      }
-    }
-
-    return { success: true, data: data || [] }
-  } catch (error) {
-    console.error("Error fetching portfolio items:", error)
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : "Failed to fetch portfolio items",
-      data: [],
-    }
-  }
-}
-

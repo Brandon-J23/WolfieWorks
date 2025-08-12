@@ -59,8 +59,11 @@ export default function HomePage() {
               <h1 className="text-2xl font-bold">WolfieWorks</h1>
             </Link>
             <nav className="hidden md:flex items-center space-x-6">
-              <Link href="/browse" className="hover:text-red-200 transition-colors">
+              <Link href="/browse_freelancers" className="hover:text-red-200 transition-colors">
                 Browse Freelancers
+              </Link>
+              <Link href="/browse_clients" className="hover:text-red-200 transition-colors">
+                Browse Clients
               </Link>
               <Link href="/jobs" className="hover:text-red-200 transition-colors">
                 Find Jobs
@@ -117,7 +120,9 @@ export default function HomePage() {
                     <ArrowRight className="ml-2 h-5 w-5" />
                   </Button>
                 </Link>
-                <Link href="/browse">
+
+                <Link href="/browse_freelancers">
+
                   <Button
                     size="lg"
                     variant="outline"
@@ -265,7 +270,9 @@ export default function HomePage() {
               <h4 className="font-semibold mb-4">For Clients</h4>
               <ul className="space-y-2 text-gray-400">
                 <li>
-                  <Link href="/browse" className="hover:text-white">
+
+                  <Link href="/browse_freelancers" className="hover:text-white">
+
                     Browse Freelancers
                   </Link>
                 </li>
