@@ -129,3 +129,119 @@ export async function deleteUserAccount(userId: string) {
     }
   }
 }
+
+// Job-related actions
+export async function createJob(formData: FormData) {
+  try {
+    const jobData = {
+      title: formData.get("title") as string,
+      description: formData.get("description") as string,
+      budget: Number.parseFloat(formData.get("budget") as string),
+      deadline: formData.get("deadline") as string,
+      skills_required: JSON.parse((formData.get("skills") as string) || "[]"),
+      client_id: formData.get("clientId") as string,
+      category: formData.get("category") as string,
+      project_type: formData.get("projectType") as string,
+    }
+
+    // Validation
+    if (!jobData.title || !jobData.description || !jobData.client_id) {
+      throw new Error("Title, description, and client ID are required")
+    }
+
+    if (jobData.budget <= 0) {
+      throw new Error("Budget must be greater than 0")
+    }
+
+    // Create job
+    const job = await db.jobs.create(jobData)
+
+    return { success: true, jobId: job.id, message: "Job posted successfully!" }
+  } catch (error) {
+    console.error("Error creating job:", error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to create job",
+    }
+  }
+}
+
+export async function getJobs(filters?: {
+  category?: string
+  minBudget?: number
+  maxBudget?: number
+  skills?: string[]
+}) {
+  try {
+    const jobs = await db.jobs.findAll(filters)
+    return { success: true, jobs }
+  } catch (error) {
+    console.error("Error fetching jobs:", error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to fetch jobs",
+      jobs: [],
+    }
+  }
+}
+
+export async function getJobById(jobId: string) {
+  try {
+    const job = await db.jobs.findById(jobId)
+    if (!job) {
+      throw new Error("Job not found")
+    }
+    return { success: true, job }
+  } catch (error) {
+    console.error("Error fetching job:", error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to fetch job",
+    }
+  }
+}
+
+export async function updateJob(jobId: string, jobData: any) {
+  try {
+    const updatedJob = await db.jobs.update(jobId, jobData)
+    return { success: true, job: updatedJob }
+  } catch (error) {
+    console.error("Error updating job:", error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to update job",
+    }
+  }
+}
+
+export async function deleteJob(jobId: string) {
+  try {
+    await db.jobs.delete(jobId)
+    return { success: true, message: "Job deleted successfully" }
+  } catch (error) {
+    console.error("Error deleting job:", error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to delete job",
+    }
+  }
+}
+
+export async function applyToJob(jobId: string, freelancerId: string, proposal: string) {
+  try {
+    const application = await db.applications.create({
+      job_id: jobId,
+      freelancer_id: freelancerId,
+      proposal,
+      status: "pending",
+    })
+
+    return { success: true, applicationId: application.id, message: "Application submitted successfully!" }
+  } catch (error) {
+    console.error("Error applying to job:", error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to apply to job",
+    }
+  }
+}
