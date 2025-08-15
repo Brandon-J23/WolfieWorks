@@ -2,9 +2,7 @@
 
 import type React from "react"
 
-
 import { useState, useMemo } from "react"
-
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -40,21 +38,21 @@ export default function SignUpPage() {
     password: "",
     confirmPassword: "",
     department: "",
+    major: "",
     year: "",
-    userType: "", // Add this new field
+    userType: "",
   })
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
 
-  const [success, setSuccess] = useState("")
+  const [success, setSuccess] = useState(false)
   const [majorSearchTerm, setMajorSearchTerm] = useState("")
   const filteredMajors = useMemo(
-    () => majors.filter(m => m.toLowerCase().includes(majorSearchTerm.toLowerCase())),
-    [majorSearchTerm]
+    () => majors.filter((m) => m.toLowerCase().includes(majorSearchTerm.toLowerCase())),
+    [majorSearchTerm],
   )
-
 
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
@@ -77,14 +75,8 @@ export default function SignUpPage() {
     return true
   }
 
-
-    if (!formData.email.endsWith("@stonybrook.edu")) {
-      
-      setError("Please use your Stony Brook University email address")
-      setLoading(false)
-      return
-    }
-
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
 
     if (!validateForm()) return
 
@@ -107,7 +99,7 @@ export default function SignUpPage() {
             last_name: formData.lastName,
             department: formData.department,
             year: formData.year,
-            user_type: formData.userType, // Add this line
+            user_type: formData.userType,
           },
         },
       })
@@ -116,6 +108,28 @@ export default function SignUpPage() {
         setError(error.message)
       } else {
         setSuccess(true)
+      }
+    } catch (err) {
+      setError("An unexpected error occurred")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleGoogleSignUp = async () => {
+    setLoading(true)
+    setError("")
+
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
+      })
+
+      if (error) {
+        setError(error.message)
       }
     } catch (err) {
       setError("An unexpected error occurred")
@@ -206,16 +220,11 @@ export default function SignUpPage() {
                 <p className="text-xs text-gray-500">Must be a Stony Brook University email</p>
               </div>
 
-
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="major">Major</Label>
                   {/** searchable select for major **/}
-                  <Select
-                    value={formData.major}
-                    onValueChange={(value) => handleInputChange("major", value)}
-                    required
-                  >
+                  <Select value={formData.major} onValueChange={(value) => handleInputChange("major", value)} required>
                     <SelectTrigger id="major">
                       <SelectValue placeholder="Select major" />
                     </SelectTrigger>
@@ -229,8 +238,10 @@ export default function SignUpPage() {
                           className="mb-2 text-sm w-full"
                         />
                       </div>
-                      {filteredMajors.map(m => (
-                        <SelectItem key={m} value={m}>{m}</SelectItem>
+                      {filteredMajors.map((m) => (
+                        <SelectItem key={m} value={m}>
+                          {m}
+                        </SelectItem>
                       ))}
                       {filteredMajors.length === 0 && majorSearchTerm && (
                         <p className="px-3 text-sm text-gray-500">No majors found</p>
@@ -253,7 +264,6 @@ export default function SignUpPage() {
                     </SelectContent>
                   </Select>
                 </div>
-
               </div>
 
               <div className="space-y-2">
@@ -333,7 +343,6 @@ export default function SignUpPage() {
               </Button>
             </form>
 
-
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t border-gray-300" />
@@ -357,11 +366,11 @@ export default function SignUpPage() {
                 />
                 <path
                   fill="currentColor"
-                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
                 />
                 <path
                   fill="currentColor"
-                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
                 />
                 <path
                   fill="currentColor"
@@ -372,7 +381,6 @@ export default function SignUpPage() {
             </Button>
 
             <div className="text-center">
-
               <p className="text-sm text-gray-600">
                 Already have an account?{" "}
                 <Link href="/sign-in" className="text-red-600 hover:text-red-700 font-medium">

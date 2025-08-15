@@ -218,4 +218,3 @@ const categories = [
   { value: "other", label: "Other" },
 
 ]
-

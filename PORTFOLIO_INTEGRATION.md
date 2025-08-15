@@ -27,7 +27,7 @@ This implementation integrates portfolio upload functionality with your Supabase
 ### 3. Database Schema
 - **File**: `scripts/create-user-portfolio-table.sql`
 - **Table Structure**:
-  ```sql
+  \`\`\`sql
   user_portfolio (
     id uuid PRIMARY KEY,
     user_id uuid REFERENCES auth.users(id),
@@ -41,7 +41,7 @@ This implementation integrates portfolio upload functionality with your Supabase
     created_at timestamp,
     updated_at timestamp
   )
-  ```
+  \`\`\`
 
 ### 4. Row Level Security (RLS)
 - Public read access for portfolio viewing
@@ -57,10 +57,10 @@ This implementation integrates portfolio upload functionality with your Supabase
 
 ### 1. Database Setup
 Run the SQL script in your Supabase SQL editor:
-```bash
+\`\`\`bash
 # In Supabase Dashboard -> SQL Editor
 # Copy and run: scripts/create-user-portfolio-table.sql
-```
+\`\`\`
 
 ### 2. Storage Setup
 Your `portfolio-images` bucket should already exist (as shown in your screenshot).
@@ -71,10 +71,10 @@ Ensure it has public read access:
 
 ### 3. Environment Variables
 Ensure these are set in your `.env.local`:
-```env
+\`\`\`env
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-```
+\`\`\`
 
 ## How It Works
 
@@ -87,7 +87,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 6. Success redirect to profile page
 
 ### Data Structure
-```typescript
+\`\`\`typescript
 // What gets saved to database
 {
   user_id: "uuid",
@@ -99,12 +99,12 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
   project_url: "https://github.com/user/project",
   featured: false
 }
-```
+\`\`\`
 
 ### Public Profile Integration
 The `getPortfolioItems(userId)` function can be used in your public profiles page:
 
-```typescript
+\`\`\`typescript
 // In your public profile component
 import { getPortfolioItems } from "@/app/actions/portfolio-actions"
 
@@ -112,14 +112,14 @@ const result = await getPortfolioItems(userId)
 if (result.success) {
   const portfolioItems = result.data // Array of PortfolioItem
 }
-```
+\`\`\`
 
 ## Testing the Integration
 
 1. **Start the development server**:
-   ```bash
+   \`\`\`bash
    npm run dev
-   ```
+   \`\`\`
 
 2. **Navigate to portfolio upload**:
    - Go to `/portfolio/upload`
