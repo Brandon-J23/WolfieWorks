@@ -121,6 +121,7 @@ export default function HomePage() {
                   </Button>
                 </Link>
 
+
                 <Link href="/browse_freelancers">
 
                   <Button
@@ -271,8 +272,8 @@ export default function HomePage() {
               <ul className="space-y-2 text-gray-400">
                 <li>
 
-                  <Link href="/browse_freelancers" className="hover:text-white">
 
+                  <Link href="/browse_freelancers" className="hover:text-white">
                     Browse Freelancers
                   </Link>
                 </li>

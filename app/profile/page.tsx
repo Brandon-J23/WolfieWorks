@@ -1,6 +1,10 @@
 "use client"
 
+
+import type React from "react"
+
 import { useEffect, useState, useMemo } from "react"
+
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -11,21 +15,103 @@ import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { GraduationCap, Star, Upload, Edit, Save, X, Heart, DollarSign, Clock, ChevronLeft, ChevronRight, ExternalLink } from "lucide-react"
+import type React from "react"
+import { Checkbox } from "@/components/ui/checkbox"
+import { GraduationCap, Star, Upload, Edit, Save, X, Heart, DollarSign, Clock, Plus, ChevronLeft, ChevronRight, ExternalLink } from "lucide-react"
 import Link from "next/link"
 import { useAuth } from "@/contexts/auth-context"
+import { toast } from "@/hooks/use-toast"
+import { supabase } from "@/lib/supabase/client"
 import { majors } from "@/lib/majors"
 import { getPortfolioItems, type PortfolioItem } from "@/app/actions/portfolio-actions"
 
+/**
+ * A list of all available skills that can be selected by freelancers.
+ */
+const AVAILABLE_SKILLS = [
+  "JavaScript",
+  "TypeScript",
+  "React",
+  "Next.js",
+  "Node.js",
+  "Python",
+  "Java",
+  "C++",
+  "HTML/CSS",
+  "Vue.js",
+  "Angular",
+  "PHP",
+  "Ruby",
+  "Go",
+  "Rust",
+  "Swift",
+  "Kotlin",
+  "Flutter",
+  "React Native",
+  "MongoDB",
+  "PostgreSQL",
+  "MySQL",
+  "Redis",
+  "AWS",
+  "Azure",
+  "Google Cloud",
+  "Docker",
+  "Kubernetes",
+  "GraphQL",
+  "REST APIs",
+  "UI/UX Design",
+  "Figma",
+  "Adobe Creative Suite",
+  "WordPress",
+  "Shopify",
+  "Digital Marketing",
+  "SEO",
+  "Content Writing",
+  "Data Analysis",
+  "Machine Learning",
+  "AI",
+  "Blockchain",
+  "Cybersecurity",
+  "DevOps",
+  "Testing/QA",
+  "Project Management",
+  "Agile/Scrum",
+]
+
+/**
+ * A list of common payment methods for freelancers.
+ */
+const PAYMENT_METHODS = [
+  "PayPal",
+  "Venmo",
+  "Zelle",
+  "Cash App",
+  "Apple Pay",
+  "Google Pay",
+  "Bank Transfer",
+  "Check",
+  "Cash",
+  "Stripe",
+  "Square",
+  "Cryptocurrency",
+]
+
 export default function ProfilePage() {
-  const { user, loading } = useAuth()
+  const { user, profile, loading, updateProfile } = useAuth()
   const router = useRouter()
   const [isEditing, setIsEditing] = useState(false)
+
+  const [isSaving, setIsSaving] = useState(false)
+  const [hourlyRateError, setHourlyRateError] = useState("")
+  const [newSkill, setNewSkill] = useState("")
+  const [isUploadingImage, setIsUploadingImage] = useState(false)
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [majorSearchTerm, setMajorSearchTerm] = useState("")
   const filteredMajors = useMemo(
     () => majors.filter(m => m.toLowerCase().includes(majorSearchTerm.toLowerCase())),
     [majorSearchTerm]
   )
+
   const [profileData, setProfileData] = useState({
     firstName: "",
     lastName: "",
@@ -37,6 +123,9 @@ export default function ProfilePage() {
     skills: [] as string[],
     hourlyRate: "",
     location: "",
+    userType: "",
+    paymentMethods: [] as string[],
+    avatarUrl: "",
   })
 
   const [portfolioItems, setPortfolioItems] = useState<PortfolioItem[]>([])
@@ -117,21 +206,121 @@ export default function ProfilePage() {
     }
 
     if (user) {
+      // Use profile data from database if available, otherwise fall back to user metadata
+      const sourceData = profile || user.user_metadata
+
       setProfileData({
-        firstName: user.user_metadata?.first_name || "",
-        lastName: user.user_metadata?.last_name || "",
+        firstName: sourceData?.first_name || "",
+        lastName: sourceData?.last_name || "",
         email: user.email || "",
-        phone: user.user_metadata?.phone || "",
-        major: user.user_metadata?.major || "",
-        year: user.user_metadata?.year || "",
-        bio: user.user_metadata?.bio || "",
-        skills: user.user_metadata?.skills || [],
-        hourlyRate: user.user_metadata?.hourly_rate || "",
-        location: user.user_metadata?.location || "",
+        phone: sourceData?.phone || "",
+        major: sourceData?.major || "",
+        year: sourceData?.academic_year || sourceData?.academic_year || "",
+        bio: sourceData?.bio || "",
+        skills: sourceData?.skills || [],
+        hourlyRate: sourceData?.hourly_rate?.toString() || "",
+        location: sourceData?.location || "",
+        userType: sourceData?.user_type || "",
+        paymentMethods: sourceData?.payment_methods || [],
+        avatarUrl: sourceData?.avatar_url || "",
       })
-      fetchPortfolioItems(user.id)
     }
-  }, [user, loading, router])
+  }, [user, profile, loading, router])
+
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file || !user) return
+
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      toast({
+        title: "Invalid file type",
+        description: "Please select an image file.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    // Validate file size (5MB limit)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: "File too large",
+        description: "Please select an image smaller than 5MB.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setIsUploadingImage(true)
+
+    try {
+      // Ensure we have the current session
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+
+      if (sessionError || !session) {
+        console.error("Session error:", sessionError)
+        throw new Error("Authentication required. Please sign in again.")
+      }
+
+      console.log("Auth check passed:")
+      console.log("- Session exists:", !!session)
+      console.log("- User ID from session:", session.user.id)
+      console.log("- User ID from context:", user.id)
+      console.log("- Auth role:", session.user.role)
+
+      // Create a unique filename with user ID as folder
+      const fileExt = file.name.split(".").pop()
+      const fileName = `avatar-${Date.now()}.${fileExt}`
+      const filePath = `${user.id}/${fileName}`
+
+      console.log("Upload details:")
+      console.log("- Bucket: user-uploads")
+      console.log("- File path:", filePath)
+      console.log("- File type:", file.type)
+      console.log("- File size:", file.size)
+
+      // Upload to Supabase storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from("user-uploads")
+        .upload(filePath, file, {
+          cacheControl: "3600",
+          upsert: false,
+        })
+
+      if (uploadError) {
+        console.error("Upload error:", uploadError)
+        throw uploadError
+      }
+
+      console.log("Upload successful:", uploadData)
+
+      // Get public URL
+      const { data: urlData } = supabase.storage.from("user-uploads").getPublicUrl(filePath)
+
+      const avatarUrl = urlData.publicUrl
+      console.log("Public URL:", avatarUrl)
+
+      // Update profile data
+      setProfileData((prev) => ({ ...prev, avatarUrl }))
+      setImagePreview(avatarUrl)
+
+      toast({
+        title: "Image uploaded",
+        description: "Your profile picture has been updated. Don't forget to save your changes.",
+      })
+
+    } catch (error) {
+      console.error("Error uploading image:", error)
+      toast({
+        title: "Upload failed",
+        description: `Failed to upload image: ${error instanceof Error ? error.message : "Unknown error"}`,
+        variant: "destructive",
+      })
+    } finally {
+      setIsUploadingImage(false)
+
+    }
+  }
 
   const fetchPortfolioItems = async (userId: string) => {
     try {
@@ -164,13 +353,100 @@ export default function ProfilePage() {
   }
 
   const handleInputChange = (field: string, value: string) => {
-    setProfileData((prev) => ({ ...prev, [field]: value }))
+    if (field === "hourlyRate") {
+      // Validate hourly rate - only allow numbers and decimal points
+      const numberRegex = /^\d*\.?\d*$/
+      if (value === "" || numberRegex.test(value)) {
+        setHourlyRateError("")
+        setProfileData((prev) => ({ ...prev, [field]: value }))
+      } else {
+        setHourlyRateError("Numbers only")
+      }
+    } else {
+      setProfileData((prev) => ({ ...prev, [field]: value }))
+    }
+  }
+
+  const handleSkillToggle = (skill: string) => {
+    setProfileData((prev) => ({
+      ...prev,
+      skills: prev.skills.includes(skill) ? prev.skills.filter((s) => s !== skill) : [...prev.skills, skill],
+    }))
+  }
+
+  const handleAddCustomSkill = () => {
+    if (newSkill.trim() && !profileData.skills.includes(newSkill.trim())) {
+      setProfileData((prev) => ({
+        ...prev,
+        skills: [...prev.skills, newSkill.trim()],
+      }))
+      setNewSkill("")
+    }
+  }
+
+  const handleRemoveSkill = (skillToRemove: string) => {
+    setProfileData((prev) => ({
+      ...prev,
+      skills: prev.skills.filter((skill) => skill !== skillToRemove),
+    }))
+  }
+
+  const handlePaymentMethodToggle = (method: string) => {
+    setProfileData((prev) => ({
+      ...prev,
+      paymentMethods: prev.paymentMethods.includes(method)
+        ? prev.paymentMethods.filter((m) => m !== method)
+        : [...prev.paymentMethods, method],
+    }))
   }
 
   const handleSave = async () => {
-    // Here you would typically save to Supabase
-    console.log("Saving profile data:", profileData)
-    setIsEditing(false)
+    if (!user) return
+
+    // Validate hourly rate before saving
+    if (profileData.hourlyRate && !/^\d*\.?\d*$/.test(profileData.hourlyRate)) {
+      setHourlyRateError("Numbers only")
+      return
+    }
+
+    setIsSaving(true)
+
+    try {
+      // Prepare the update data
+      const updateData = {
+        first_name: profileData.firstName,
+        last_name: profileData.lastName,
+        phone: profileData.phone,
+        major: profileData.major,
+        academic_year: profileData.year,
+        bio: profileData.bio,
+        skills: profileData.skills,
+        hourly_rate: profileData.hourlyRate ? Number.parseFloat(profileData.hourlyRate) : undefined,
+        location: profileData.location,
+        user_type: profileData.userType,
+        payment_methods: profileData.paymentMethods,
+        avatar_url: profileData.avatarUrl,
+      }
+
+      // Update the profile in the database
+      await updateProfile(updateData)
+
+      setIsEditing(false)
+      setImagePreview(null) // Clear preview since it's now saved
+      toast({
+        title: "Profile updated",
+        description: "Your profile has been successfully updated.",
+      })
+    } catch (error) {
+      console.error("Error saving profile:", error)
+      toast({
+        title: "Error",
+        description: "Failed to update profile. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   const handleUnsaveJob = (jobId: number) => {
@@ -228,13 +504,40 @@ export default function ProfilePage() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-4">
-                  <Avatar className="h-20 w-20">
-                    <AvatarImage src={user.user_metadata?.avatar_url || "/placeholder.svg"} />
-                    <AvatarFallback className="text-2xl">
-                      {profileData.firstName[0]}
-                      {profileData.lastName[0]}
-                    </AvatarFallback>
-                  </Avatar>
+                  <div className="relative">
+                    <Avatar className="h-20 w-20">
+                      <AvatarImage
+                        src={
+                          imagePreview || profileData.avatarUrl || user.user_metadata?.avatar_url || "/placeholder.svg"
+                        }
+                      />
+                      <AvatarFallback className="text-2xl">
+                        {profileData.firstName[0]}
+                        {profileData.lastName[0]}
+                      </AvatarFallback>
+                    </Avatar>
+                    {isEditing && (
+                      <div className="absolute -bottom-2 -right-2">
+                        <label htmlFor="avatar-upload" className="cursor-pointer">
+                          <div className="bg-red-600 hover:bg-red-700 text-white rounded-full p-2 shadow-lg transition-colors">
+                            {isUploadingImage ? (
+                              <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
+                            ) : (
+                              <Upload className="h-4 w-4" />
+                            )}
+                          </div>
+                        </label>
+                        <input
+                          id="avatar-upload"
+                          type="file"
+                          accept="image/*"
+                          onChange={handleImageUpload}
+                          className="hidden"
+                          disabled={isUploadingImage}
+                        />
+                      </div>
+                    )}
+                  </div>
                   <div>
                     <h1 className="text-3xl font-bold text-gray-900">
                       {profileData.firstName} {profileData.lastName}
@@ -253,6 +556,7 @@ export default function ProfilePage() {
                   onClick={() => setIsEditing(!isEditing)}
                   variant={isEditing ? "outline" : "default"}
                   className={isEditing ? "" : "bg-red-600 hover:bg-red-700"}
+                  disabled={isSaving}
                 >
                   {isEditing ? (
                     <>
@@ -355,7 +659,35 @@ export default function ProfilePage() {
                         </SelectContent>
                       </Select>
                     </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="userType">User Type</Label>
+                      <Select
+                        value={profileData.userType}
+                        onValueChange={(value) => handleInputChange("userType", value)}
+                        disabled={!isEditing}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select your role" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="freelancer">Freelancer</SelectItem>
+                          <SelectItem value="client">Client</SelectItem>
+                          <SelectItem value="both">Both</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="location">Location</Label>
+                      <Input
+                        id="location"
+                        value={profileData.location}
+                        onChange={(e) => handleInputChange("location", e.target.value)}
+                        disabled={!isEditing}
+                        placeholder="City, State"
+                      />
+                    </div>
                   </div>
+
                   <div className="space-y-2">
                     <Label htmlFor="bio">Bio</Label>
                     <Textarea
@@ -367,24 +699,179 @@ export default function ProfilePage() {
                       placeholder="Tell us about yourself, your experience, and what makes you unique..."
                     />
                   </div>
+
+                  {/* Skills Section */}
+                  <div className="space-y-4">
+                    <Label>Skills</Label>
+                    {!isEditing ? (
+                      <div className="flex flex-wrap gap-2">
+                        {profileData.skills.length > 0 ? (
+                          profileData.skills.map((skill) => (
+                            <Badge key={skill} variant="secondary">
+                              {skill}
+                            </Badge>
+                          ))
+                        ) : (
+                          <p className="text-gray-500 text-sm">No skills added yet</p>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {/* Selected Skills */}
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium">Selected Skills</Label>
+                          <div className="flex flex-wrap gap-2 min-h-[40px] p-2 border rounded-md">
+                            {profileData.skills.length > 0 ? (
+                              profileData.skills.map((skill) => (
+                                <Badge key={skill} variant="default" className="bg-red-600 hover:bg-red-700">
+                                  {skill}
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRemoveSkill(skill)}
+                                    className="ml-2 hover:text-red-200"
+                                  >
+                                    <X className="h-3 w-3" />
+                                  </button>
+                                </Badge>
+                              ))
+                            ) : (
+                              <p className="text-gray-500 text-sm">No skills selected</p>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Add Custom Skill */}
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium">Add Custom Skill</Label>
+                          <div className="flex gap-2">
+                            <Input
+                              value={newSkill}
+                              onChange={(e) => setNewSkill(e.target.value)}
+                              placeholder="Enter a skill..."
+                              onKeyPress={(e) => e.key === "Enter" && handleAddCustomSkill()}
+                            />
+                            <Button
+                              type="button"
+                              onClick={handleAddCustomSkill}
+                              size="sm"
+                              className="bg-red-600 hover:bg-red-700"
+                            >
+                              <Plus className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+
+                        {/* Available Skills */}
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium">Available Skills</Label>
+                          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 max-h-60 overflow-y-auto p-2 border rounded-md">
+                            {AVAILABLE_SKILLS.map((skill) => (
+                              <div key={skill} className="flex items-center space-x-2">
+                                <Checkbox
+                                  id={skill}
+                                  checked={profileData.skills.includes(skill)}
+                                  onCheckedChange={() => handleSkillToggle(skill)}
+                                />
+                                <Label htmlFor={skill} className="text-sm cursor-pointer">
+                                  {skill}
+                                </Label>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Payment Methods Section */}
+                  <div className="space-y-4">
+                    <Label>Payment Methods</Label>
+                    {!isEditing ? (
+                      <div className="flex flex-wrap gap-2">
+                        {profileData.paymentMethods.length > 0 ? (
+                          profileData.paymentMethods.map((method) => (
+                            <Badge key={method} variant="outline">
+                              {method}
+                            </Badge>
+                          ))
+                        ) : (
+                          <p className="text-gray-500 text-sm">No payment methods selected</p>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {/* Selected Payment Methods */}
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium">Selected Payment Methods</Label>
+                          <div className="flex flex-wrap gap-2 min-h-[40px] p-2 border rounded-md">
+                            {profileData.paymentMethods.length > 0 ? (
+                              profileData.paymentMethods.map((method) => (
+                                <Badge key={method} variant="outline" className="border-red-600 text-red-600">
+                                  {method}
+                                </Badge>
+                              ))
+                            ) : (
+                              <p className="text-gray-500 text-sm">No payment methods selected</p>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Available Payment Methods */}
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium">Available Payment Methods</Label>
+                          <div className="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-48 overflow-y-auto p-2 border rounded-md">
+                            {PAYMENT_METHODS.map((method) => (
+                              <div key={method} className="flex items-center space-x-2">
+                                <Checkbox
+                                  id={method}
+                                  checked={profileData.paymentMethods.includes(method)}
+                                  onCheckedChange={() => handlePaymentMethodToggle(method)}
+                                />
+                                <Label htmlFor={method} className="text-sm cursor-pointer">
+                                  {method}
+                                </Label>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
                   <div className="space-y-2">
-                    <Label htmlFor="hourlyRate">Hourly Rate</Label>
+                    <Label htmlFor="hourlyRate">Hourly Rate ($)</Label>
                     <Input
                       id="hourlyRate"
                       value={profileData.hourlyRate}
                       onChange={(e) => handleInputChange("hourlyRate", e.target.value)}
                       disabled={!isEditing}
-                      placeholder="$25"
+                      placeholder="25.00"
+                      className={hourlyRateError ? "border-red-500" : ""}
                     />
+                    {hourlyRateError && <p className="text-sm text-red-500 mt-1">{hourlyRateError}</p>}
                   </div>
+
                   {isEditing && (
                     <div className="flex justify-end space-x-4">
-                      <Button variant="outline" onClick={() => setIsEditing(false)}>
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setIsEditing(false)
+                          setHourlyRateError("")
+                          setNewSkill("")
+                          setImagePreview(null)
+                        }}
+                        disabled={isSaving}
+                      >
                         Cancel
                       </Button>
-                      <Button onClick={handleSave} className="bg-red-600 hover:bg-red-700">
+                      <Button
+                        onClick={handleSave}
+                        className="bg-red-600 hover:bg-red-700"
+                        disabled={isSaving || !!hourlyRateError}
+                      >
                         <Save className="mr-2 h-4 w-4" />
-                        Save Changes
+                        {isSaving ? "Saving..." : "Save Changes"}
                       </Button>
                     </div>
                   )}
@@ -557,9 +1044,8 @@ export default function ProfilePage() {
                               {[...Array(5)].map((_, i) => (
                                 <Star
                                   key={i}
-                                  className={`h-4 w-4 ${
-                                    i < rating.rating ? "fill-yellow-400 text-yellow-400" : "text-gray-300"
-                                  }`}
+                                  className={`h-4 w-4 ${i < rating.rating ? "fill-yellow-400 text-yellow-400" : "text-gray-300"
+                                    }`}
                                 />
                               ))}
                             </div>

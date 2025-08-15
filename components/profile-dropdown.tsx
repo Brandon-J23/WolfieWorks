@@ -10,9 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-
 import { User, Settings, LogOut, Briefcase, Star } from "lucide-react"
-
 import Link from "next/link"
 import { useAuth } from "@/contexts/auth-context"
 
@@ -31,7 +29,6 @@ export function ProfileDropdown() {
       ? `${profile.first_name[0]}${profile.last_name[0]}`
 
       : user.email?.[0]?.toUpperCase() || "U"
-
 
   return (
     <DropdownMenu>
