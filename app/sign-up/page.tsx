@@ -2,17 +2,34 @@
 
 import type React from "react"
 
-import { useState } from "react"
+
+import { useState, useMemo } from "react"
+
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Checkbox } from "@/components/ui/checkbox"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { GraduationCap, Eye, EyeOff, Mail, Lock, User } from "lucide-react"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { GraduationCap, Eye, EyeOff, AlertCircle, CheckCircle } from "lucide-react"
 import { supabase } from "@/lib/supabase/client"
+import { majors } from "@/lib/majors"
+
+const departments = [
+  "Computer Science",
+  "Engineering",
+  "Business",
+  "Art & Design",
+  "English",
+  "Mathematics",
+  "Psychology",
+  "Biology",
+  "Chemistry",
+  "Physics",
+  "Other",
+]
 
 export default function SignUpPage() {
   const router = useRouter()
@@ -22,51 +39,57 @@ export default function SignUpPage() {
     email: "",
     password: "",
     confirmPassword: "",
-    major: "",
+    department: "",
     year: "",
     userType: "", // Add this new field
   })
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-  const [agreeToTerms, setAgreeToTerms] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
+
   const [success, setSuccess] = useState("")
+  const [majorSearchTerm, setMajorSearchTerm] = useState("")
+  const filteredMajors = useMemo(
+    () => majors.filter(m => m.toLowerCase().includes(majorSearchTerm.toLowerCase())),
+    [majorSearchTerm]
+  )
+
 
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
+    setError("")
   }
 
-  const handleEmailSignUp = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
-    setError("")
-    setSuccess("")
-
-    // Validation
+  const validateForm = () => {
+    if (!formData.email.endsWith("@stonybrook.edu")) {
+      setError("Must use a Stony Brook University email address")
+      return false
+    }
+    if (formData.password.length < 6) {
+      setError("Password must be at least 6 characters long")
+      return false
+    }
     if (formData.password !== formData.confirmPassword) {
       setError("Passwords do not match")
-      setLoading(false)
-      return
+      return false
     }
+    return true
+  }
+
 
     if (!formData.email.endsWith("@stonybrook.edu")) {
+      
       setError("Please use your Stony Brook University email address")
       setLoading(false)
       return
     }
 
-    if (!agreeToTerms) {
-      setError("Please agree to the terms of service")
-      setLoading(false)
-      return
-    }
 
-    if (formData.password.length < 6) {
-      setError("Password must be at least 6 characters long")
-      setLoading(false)
-      return
-    }
+    if (!validateForm()) return
+
+    setLoading(true)
+    setError("")
 
     if (!formData.userType) {
       setError("Please select your user type")
@@ -75,15 +98,14 @@ export default function SignUpPage() {
     }
 
     try {
-      const { data, error } = await supabase.auth.signUp({
+      const { error } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
         options: {
           data: {
-            full_name: `${formData.firstName} ${formData.lastName}`,
             first_name: formData.firstName,
             last_name: formData.lastName,
-            major: formData.major,
+            department: formData.department,
             year: formData.year,
             user_type: formData.userType, // Add this line
           },
@@ -92,11 +114,8 @@ export default function SignUpPage() {
 
       if (error) {
         setError(error.message)
-      } else if (data.user && !data.user.email_confirmed_at) {
-        setSuccess("Please check your email to confirm your account before signing in!")
       } else {
-        // User is automatically signed in
-        router.push("/profile")
+        setSuccess(true)
       }
     } catch (err) {
       setError("An unexpected error occurred")
@@ -105,82 +124,70 @@ export default function SignUpPage() {
     }
   }
 
-  const handleGoogleSignUp = async () => {
-    setLoading(true)
-    setError("")
-
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
-        },
-      })
-
-      if (error) {
-        setError(error.message)
-        setLoading(false)
-      }
-    } catch (err) {
-      setError("An unexpected error occurred")
-      setLoading(false)
-    }
+  if (success) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="w-full max-w-md">
+          <Card>
+            <CardHeader className="text-center">
+              <div className="flex justify-center mb-4">
+                <CheckCircle className="h-12 w-12 text-green-600" />
+              </div>
+              <CardTitle className="text-2xl">Check Your Email</CardTitle>
+              <CardDescription>We've sent you a confirmation link</CardDescription>
+            </CardHeader>
+            <CardContent className="text-center">
+              <p className="text-gray-600 mb-4">
+                Please check your email and click the confirmation link to activate your account.
+              </p>
+              <Link href="/sign-in">
+                <Button className="bg-red-600 hover:bg-red-700">Back to Sign In</Button>
+              </Link>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        {/* Header */}
-        <div className="text-center">
-          <Link href="/" className="flex items-center justify-center space-x-2 mb-6">
-            <GraduationCap className="h-8 w-8 text-red-600" />
-            <span className="text-2xl font-bold text-gray-900">WolfieWorks</span>
-          </Link>
-          <h2 className="text-3xl font-bold text-gray-900">Join WolfieWorks</h2>
-          <p className="mt-2 text-gray-600">Create your freelancer account</p>
-        </div>
-
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center py-8">
+      <div className="w-full max-w-md">
         <Card>
-          <CardHeader>
-            <CardTitle>Sign Up</CardTitle>
-            <CardDescription>Create your account to get started</CardDescription>
+          <CardHeader className="text-center">
+            <div className="flex justify-center mb-4">
+              <GraduationCap className="h-12 w-12 text-red-600" />
+            </div>
+            <CardTitle className="text-2xl">Join WolfieWorks</CardTitle>
+            <CardDescription>Create your freelancer account</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
-            {error && (
-              <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md text-sm">{error}</div>
-            )}
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {error && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
 
-            {success && (
-              <div className="bg-green-50 border border-green-200 text-green-600 px-4 py-3 rounded-md text-sm">
-                {success}
-              </div>
-            )}
-
-            <form onSubmit={handleEmailSignUp} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="firstName">First Name</Label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                    <Input
-                      id="firstName"
-                      type="text"
-                      placeholder="John"
-                      value={formData.firstName}
-                      onChange={(e) => handleInputChange("firstName", e.target.value)}
-                      className="pl-10"
-                      required
-                    />
-                  </div>
+                  <Input
+                    id="firstName"
+                    value={formData.firstName}
+                    onChange={(e) => handleInputChange("firstName", e.target.value)}
+                    placeholder="John"
+                    required
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="lastName">Last Name</Label>
                   <Input
                     id="lastName"
-                    type="text"
-                    placeholder="Doe"
                     value={formData.lastName}
                     onChange={(e) => handleInputChange("lastName", e.target.value)}
+                    placeholder="Doe"
                     required
                   />
                 </div>
@@ -188,32 +195,48 @@ export default function SignUpPage() {
 
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="john.doe@stonybrook.edu"
-                    value={formData.email}
-                    onChange={(e) => handleInputChange("email", e.target.value)}
-                    className="pl-10"
-                    required
-                  />
-                </div>
-                <p className="text-xs text-gray-500">Must be a valid Stony Brook University email</p>
+                <Input
+                  id="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => handleInputChange("email", e.target.value)}
+                  placeholder="john.doe@stonybrook.edu"
+                  required
+                />
+                <p className="text-xs text-gray-500">Must be a Stony Brook University email</p>
               </div>
+
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="major">Major</Label>
-                  <Input
-                    id="major"
-                    type="text"
-                    placeholder="Computer Science"
+                  {/** searchable select for major **/}
+                  <Select
                     value={formData.major}
-                    onChange={(e) => handleInputChange("major", e.target.value)}
+                    onValueChange={(value) => handleInputChange("major", value)}
                     required
-                  />
+                  >
+                    <SelectTrigger id="major">
+                      <SelectValue placeholder="Select major" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <div className="px-2 py-1">
+                        <Input
+                          type="text"
+                          placeholder="Search majors..."
+                          value={majorSearchTerm}
+                          onChange={(e) => setMajorSearchTerm(e.target.value)}
+                          className="mb-2 text-sm w-full"
+                        />
+                      </div>
+                      {filteredMajors.map(m => (
+                        <SelectItem key={m} value={m}>{m}</SelectItem>
+                      ))}
+                      {filteredMajors.length === 0 && majorSearchTerm && (
+                        <p className="px-3 text-sm text-gray-500">No majors found</p>
+                      )}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="year">Academic Year</Label>
@@ -230,6 +253,7 @@ export default function SignUpPage() {
                     </SelectContent>
                   </Select>
                 </div>
+
               </div>
 
               <div className="space-y-2">
@@ -253,72 +277,62 @@ export default function SignUpPage() {
               <div className="space-y-2">
                 <Label htmlFor="password">Password</Label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                   <Input
                     id="password"
                     type={showPassword ? "text" : "password"}
-                    placeholder="Create a strong password"
                     value={formData.password}
                     onChange={(e) => handleInputChange("password", e.target.value)}
-                    className="pl-10 pr-10"
+                    placeholder="Create a password"
                     required
-                    minLength={6}
                   />
-                  <button
+                  <Button
                     type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
                   >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4 text-gray-400" />
+                    ) : (
+                      <Eye className="h-4 w-4 text-gray-400" />
+                    )}
+                  </Button>
                 </div>
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="confirmPassword">Confirm Password</Label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                   <Input
                     id="confirmPassword"
                     type={showConfirmPassword ? "text" : "password"}
-                    placeholder="Confirm your password"
                     value={formData.confirmPassword}
                     onChange={(e) => handleInputChange("confirmPassword", e.target.value)}
-                    className="pl-10 pr-10"
+                    placeholder="Confirm your password"
                     required
                   />
-                  <button
+                  <Button
                     type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
                   >
-                    {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
+                    {showConfirmPassword ? (
+                      <EyeOff className="h-4 w-4 text-gray-400" />
+                    ) : (
+                      <Eye className="h-4 w-4 text-gray-400" />
+                    )}
+                  </Button>
                 </div>
               </div>
 
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="terms"
-                  checked={agreeToTerms}
-                  onCheckedChange={(checked) => setAgreeToTerms(checked as boolean)}
-                />
-                <Label htmlFor="terms" className="text-sm">
-                  I agree to the{" "}
-                  <Link href="/terms" className="text-red-600 hover:text-red-500">
-                    Terms of Service
-                  </Link>{" "}
-                  and{" "}
-                  <Link href="/privacy" className="text-red-600 hover:text-red-500">
-                    Privacy Policy
-                  </Link>
-                </Label>
-              </div>
-
               <Button type="submit" className="w-full bg-red-600 hover:bg-red-700" disabled={loading}>
-                {loading ? "Creating account..." : "Create Account"}
+                {loading ? "Creating Account..." : "Create Account"}
               </Button>
             </form>
+
 
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
@@ -358,10 +372,11 @@ export default function SignUpPage() {
             </Button>
 
             <div className="text-center">
+
               <p className="text-sm text-gray-600">
                 Already have an account?{" "}
-                <Link href="/sign-in" className="text-red-600 hover:text-red-500 font-medium">
-                  Sign in
+                <Link href="/sign-in" className="text-red-600 hover:text-red-700 font-medium">
+                  Sign in here
                 </Link>
               </p>
             </div>
